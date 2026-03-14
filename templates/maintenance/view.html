@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block title %}{{ opp.title }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('maintenance.index') }}">Maintenance CRM</a></li>
+<li class="breadcrumb-item active">{{ opp.title[:30] }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between flex-wrap gap-2">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            {% if opp.maint_type == 'preventive' %}
+            <span class="badge" style="background:#dbeafe;color:#1e40af;">🔵 PRÉVENTIVE</span>
+            {% elif opp.maint_type == 'curative' %}
+            <span class="badge" style="background:#fee2e2;color:#991b1b;">🔴 CURATIVE</span>
+            {% else %}
+            <span class="badge" style="background:#d1fae5;color:#065f46;">🟢 MIXTE</span>
+            {% endif %}
+            <span class="badge" style="background:{{ stages[opp.stage].color }}20; color:{{ stages[opp.stage].color }};">
+                {{ stages[opp.stage].icon }} {{ stages[opp.stage].label }}
+            </span>
+        </div>
+        <h1>{{ opp.title }}</h1>
+        <p>{{ park_types.get(opp.park_type, opp.park_type or '') }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('maintenance.edit', id=opp.id) }}" class="btn btn-warning btn-sm"><i class="fas fa-edit me-1"></i>Modifier</a>
+        <form action="{{ url_for('maintenance.delete', id=opp.id) }}" method="POST" onsubmit="return confirm('Supprimer ?')">
+            <button class="btn btn-danger btn-sm"><i class="fas fa-trash me-1"></i>Supprimer</button>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3">
+<div class="col-lg-8">
+
+    <!-- Details card -->
+    <div class="card mb-3">
+        <div class="card-header"><h6 class="mb-0 fw-bold">📋 Informations du contrat</h6></div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-sm-4">
+                    <div class="section-label">Valeur annuelle</div>
+                    <div class="fw-bold" style="font-size:1.5rem; color:#0891b2;">
+                        {{ "%.0f"|format(opp.value) if opp.value else '—' }} {{ opp.currency }}
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="section-label">Durée du contrat</div>
+                    <div class="fw-bold" style="font-size:1.25rem;">{{ opp.contract_duration or 12 }} mois</div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="section-label">Visites préventives/an</div>
+                    <div class="fw-bold" style="font-size:1.25rem;">{{ opp.visits_per_year or 4 }} visites</div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="section-label">Nb équipements</div>
+                    <div>{{ opp.nb_equipments or '—' }}</div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="section-label">Adresse du site</div>
+                    <div>{{ opp.site_address or '—' }}</div>
+                </div>
+                {% if opp.park_description %}
+                <div class="col-12">
+                    <div class="section-label">Description du parc</div>
+                    <div style="font-size:.875rem;">{{ opp.park_description }}</div>
+                </div>
+                {% endif %}
+                {% if opp.notes %}
+                <div class="col-12">
+                    <div class="section-label">Notes</div>
+                    <div style="font-size:.875rem;">{{ opp.notes }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Stage update -->
+    <div class="card mb-3">
+        <div class="card-header"><h6 class="mb-0 fw-bold">🔄 Mettre à jour le stade</h6></div>
+        <div class="card-body">
+            <form action="{{ url_for('maintenance.update_stage', id=opp.id) }}" method="POST" class="d-flex gap-2 flex-wrap">
+                <select name="stage" class="form-select form-select-sm" style="max-width:220px;">
+                    {% for s, info in stages.items() %}
+                    <option value="{{ s }}" {% if s == opp.stage %}selected{% endif %}>{{ info.icon }} {{ info.label }}</option>
+                    {% endfor %}
+                </select>
+                <input type="text" name="lost_reason" class="form-control form-control-sm" placeholder="Raison si perdu..." style="max-width:200px;">
+                <button type="submit" class="btn btn-primary btn-sm">Mettre à jour</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Quotes -->
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-bold">📄 Devis de maintenance</h6>
+            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#quoteModal">
+                <i class="fas fa-plus me-1"></i>Nouveau devis
+            </button>
+        </div>
+        <div class="card-body p-0">
+            {% if opp.quotes %}
+            <table class="table table-sm mb-0">
+                <thead><tr><th>N°</th><th>Total HT</th><th>Total TTC</th><th>TVA</th><th>Statut</th><th>Valide jusqu'au</th></tr></thead>
+                <tbody>
+                {% for q in opp.quotes %}
+                <tr>
+                    <td class="fw-bold" style="font-size:.8rem;">{{ q.quote_number }}</td>
+                    <td>{{ "%.2f"|format(q.total_ht) if q.total_ht else '—' }} TND</td>
+                    <td class="fw-bold text-primary">{{ "%.2f"|format(q.total_ttc) if q.total_ttc else '—' }} TND</td>
+                    <td>{{ q.tva or 19 }}%</td>
+                    <td><span class="badge bg-light text-dark">{{ q.status }}</span></td>
+                    <td style="font-size:.8rem;">{{ q.valid_until.strftime('%d/%m/%Y') if q.valid_until else '—' }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="text-center py-3 text-muted" style="font-size:.875rem;">Aucun devis</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="col-lg-4">
+    <!-- Client info -->
+    {% if opp.prospect %}
+    <div class="card mb-3">
+        <div class="card-header"><h6 class="mb-0 fw-bold">🏢 Client</h6></div>
+        <div class="card-body" style="font-size:.875rem;">
+            <div class="fw-bold mb-1">{{ opp.prospect.company_name }}</div>
+            <div class="text-muted mb-2">{{ opp.prospect.sector or '' }}</div>
+            {% if opp.prospect.contact_name %}
+            <div><i class="fas fa-user me-2 text-muted"></i>{{ opp.prospect.contact_name }}</div>
+            {% endif %}
+            {% if opp.prospect.email %}
+            <div><i class="fas fa-envelope me-2 text-muted"></i>{{ opp.prospect.email }}</div>
+            {% endif %}
+            {% if opp.prospect.phone %}
+            <div><i class="fas fa-phone me-2 text-muted"></i>{{ opp.prospect.phone }}</div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Follow-up -->
+    <div class="card mb-3">
+        <div class="card-header"><h6 class="mb-0 fw-bold">📅 Planning</h6></div>
+        <div class="card-body" style="font-size:.875rem;">
+            <div class="d-flex justify-content-between py-1 border-bottom">
+                <span class="text-muted">Prochaine relance</span>
+                <span class="fw-bold">{{ opp.next_followup.strftime('%d/%m/%Y') if opp.next_followup else '—' }}</span>
+            </div>
+            <div class="d-flex justify-content-between py-1">
+                <span class="text-muted">Prochaine visite</span>
+                <span class="fw-bold text-teal" style="color:#0891b2;">{{ opp.next_visit.strftime('%d/%m/%Y') if opp.next_visit else '—' }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Probability -->
+    <div class="card">
+        <div class="card-body">
+            <div class="section-label">Probabilité</div>
+            <div class="fw-bold" style="font-size:2rem; color:{% if opp.probability >= 70 %}#059669{% elif opp.probability >= 40 %}#f59e0b{% else %}#dc2626{% endif %};">
+                {{ opp.probability }}%
+            </div>
+            <div class="score-bar mt-2"><div class="score-fill {% if opp.probability >= 70 %}score-high{% elif opp.probability >= 40 %}score-medium{% else %}score-low{% endif %}"
+                style="width:{{ opp.probability }}%;"></div></div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- Quote Modal -->
+<div class="modal fade" id="quoteModal" tabindex="-1">
+<div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Nouveau devis de maintenance</h5>
+    <button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <form action="{{ url_for('maintenance.add_quote', id=opp.id) }}" method="POST">
+        <div class="modal-body">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Total HT (TND)</label>
+                <input type="number" name="total_ht" class="form-control" step="0.01" min="0" required
+                       oninput="calcTTC(this.value)">
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">TVA (%)</label>
+                <input type="number" name="tva" class="form-control" value="19" step="0.1" id="tvaInput"
+                       oninput="calcTTC(document.querySelector('[name=total_ht]').value)">
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Total TTC estimé</label>
+                <input type="text" id="ttcPreview" class="form-control" readonly
+                       style="background:#f0fdf4; color:#059669; font-weight:700;" placeholder="—">
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Valide jusqu'au</label>
+                <input type="date" name="valid_until" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Notes</label>
+                <textarea name="notes" class="form-control" rows="2"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+            <button type="submit" class="btn btn-primary">Créer le devis</button>
+        </div>
+    </form>
+</div></div></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function calcTTC(ht) {
+    const tva = parseFloat(document.getElementById('tvaInput').value) || 19;
+    const ttc = (parseFloat(ht) || 0) * (1 + tva / 100);
+    document.getElementById('ttcPreview').value = ttc.toFixed(2) + ' TND';
+}
+</script>
+{% endblock %}

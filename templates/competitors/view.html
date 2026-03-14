@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}{{ competitor.name }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('competitors.index') }}">Concurrents</a></li>
+<li class="breadcrumb-item active">{{ competitor.name }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+    <div>
+        <h1>{{ competitor.name }}</h1>
+        <p>{{ competitor.sector or '' }}{% if competitor.country %} — {{ competitor.country }}{% endif %}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('competitors.edit', id=competitor.id) }}" class="btn btn-outline-primary btn-sm"><i class="fas fa-edit me-1"></i>Modifier</a>
+        <a href="{{ url_for('competitors.pdf', id=competitor.id) }}" class="btn btn-outline-danger btn-sm"><i class="fas fa-file-pdf me-1"></i>PDF</a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Left: main info -->
+    <div class="col-lg-8">
+
+        <!-- Similarity Score Banner -->
+        {% if competitor.similarity_score %}
+        <div class="card mb-3" style="border-left: 4px solid {% if competitor.similarity_score >= 70 %}#059669{% elif competitor.similarity_score >= 40 %}#1a56db{% else %}#94a3b8{% endif %};">
+            <div class="card-body py-2 d-flex align-items-center gap-3">
+                <div>
+                    <span style="font-size:0.75rem; color:#94a3b8; font-weight:600; text-transform:uppercase;">Score de similarité avec votre activité</span>
+                    <div class="d-flex align-items-center gap-2 mt-1">
+                        <div class="score-bar" style="width:200px;">
+                            <div class="score-fill" style="width:{{ competitor.similarity_score }}%; background:{% if competitor.similarity_score >= 70 %}#059669{% elif competitor.similarity_score >= 40 %}#1a56db{% else %}#94a3b8{% endif %};"></div>
+                        </div>
+                        <span class="fw-bold" style="font-size:1.1rem;">{{ competitor.similarity_score }}%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- General Info -->
+        <div class="card mb-3">
+            <div class="card-header"><h6 class="mb-0 fw-bold">📋 Informations Générales</h6></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div style="font-size:0.75rem; color:#94a3b8; text-transform:uppercase; font-weight:600;">Site Web</div>
+                        <div>{% if competitor.website %}<a href="{{ competitor.website }}" target="_blank">{{ competitor.website }}</a>{% else %}—{% endif %}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div style="font-size:0.75rem; color:#94a3b8; text-transform:uppercase; font-weight:600;">Localisation</div>
+                        <div>{{ competitor.city or '' }}{% if competitor.city and competitor.country %}, {% endif %}{{ competitor.country or '' }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div style="font-size:0.75rem; color:#94a3b8; text-transform:uppercase; font-weight:600;">Fondé en</div>
+                        <div>{{ competitor.founded_year or '—' }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div style="font-size:0.75rem; color:#94a3b8; text-transform:uppercase; font-weight:600;">Employés</div>
+                        <div>{{ competitor.employees_count or '—' }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div style="font-size:0.75rem; color:#94a3b8; text-transform:uppercase; font-weight:600;">CA Estimé</div>
+                        <div>{{ competitor.revenue_estimate or '—' }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div style="font-size:0.75rem; color:#94a3b8; text-transform:uppercase; font-weight:600;">Note Google</div>
+                        <div>{% if competitor.google_rating %}⭐ {{ competitor.google_rating }}/5{% else %}—{% endif %}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Products & Activities -->
+        <div class="card mb-3">
+            <div class="card-header"><h6 class="mb-0 fw-bold">🏭 Activités & Offre</h6></div>
+            <div class="card-body">
+                {% if competitor.activities %}
+                <div class="mb-3">
+                    <div style="font-size:0.75rem; color:#94a3b8; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Activités</div>
+                    <p style="font-size:0.875rem; margin:0;">{{ competitor.activities }}</p>
+                </div>
+                {% endif %}
+                <div class="row g-3">
+                    {% if competitor.products %}
+                    <div class="col-md-6">
+                        <div style="font-size:0.75rem; color:#94a3b8; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Produits</div>
+                        <p style="font-size:0.875rem; margin:0;">{{ competitor.products }}</p>
+                    </div>
+                    {% endif %}
+                    {% if competitor.services %}
+                    <div class="col-md-6">
+                        <div style="font-size:0.75rem; color:#94a3b8; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Services</div>
+                        <p style="font-size:0.875rem; margin:0;">{{ competitor.services }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- SWOT Analysis -->
+        {% if swot %}
+        <div class="card mb-3">
+            <div class="card-header"><h6 class="mb-0 fw-bold">🎯 Analyse SWOT (générée par IA)</h6></div>
+            <div class="card-body">
+                {% if swot.raw %}
+                    <p style="font-size:0.875rem;">{{ swot.raw }}</p>
+                {% else %}
+                <div class="row g-3">
+                    {% if swot.strengths %}
+                    <div class="col-sm-6">
+                        <div class="p-3 rounded" style="background:#d1fae5;">
+                            <div class="fw-bold mb-2" style="font-size:0.8rem; color:#065f46;">✅ Forces</div>
+                            <ul class="mb-0 ps-3">{% for s in swot.strengths %}<li style="font-size:0.8rem;">{{ s }}</li>{% endfor %}</ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if swot.weaknesses %}
+                    <div class="col-sm-6">
+                        <div class="p-3 rounded" style="background:#fee2e2;">
+                            <div class="fw-bold mb-2" style="font-size:0.8rem; color:#991b1b;">⚠️ Faiblesses</div>
+                            <ul class="mb-0 ps-3">{% for w in swot.weaknesses %}<li style="font-size:0.8rem;">{{ w }}</li>{% endfor %}</ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if swot.opportunities %}
+                    <div class="col-sm-6">
+                        <div class="p-3 rounded" style="background:#dbeafe;">
+                            <div class="fw-bold mb-2" style="font-size:0.8rem; color:#1e40af;">🚀 Opportunités</div>
+                            <ul class="mb-0 ps-3">{% for o in swot.opportunities %}<li style="font-size:0.8rem;">{{ o }}</li>{% endfor %}</ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if swot.threats %}
+                    <div class="col-sm-6">
+                        <div class="p-3 rounded" style="background:#fef3c7;">
+                            <div class="fw-bold mb-2" style="font-size:0.8rem; color:#92400e;">🔴 Menaces</div>
+                            <ul class="mb-0 ps-3">{% for t in swot.threats %}<li style="font-size:0.8rem;">{{ t }}</li>{% endfor %}</ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right: Digital presence + notes -->
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header"><h6 class="mb-0 fw-bold">🌐 Présence Digitale</h6></div>
+            <div class="card-body" style="font-size:0.875rem;">
+                {% if competitor.linkedin_url %}
+                <div class="mb-2"><a href="{{ competitor.linkedin_url }}" target="_blank" class="text-decoration-none"><i class="fab fa-linkedin me-2" style="color:#0077b5;"></i>LinkedIn</a></div>
+                {% endif %}
+                {% if competitor.facebook_url %}
+                <div class="mb-2"><a href="{{ competitor.facebook_url }}" target="_blank" class="text-decoration-none"><i class="fab fa-facebook me-2" style="color:#1877f2;"></i>Facebook</a></div>
+                {% endif %}
+                {% if competitor.technologies %}
+                <div class="mt-2">
+                    <div style="font-size:0.75rem; color:#94a3b8; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Technologies</div>
+                    <div>{{ competitor.technologies }}</div>
+                </div>
+                {% endif %}
+                {% if not competitor.linkedin_url and not competitor.facebook_url and not competitor.technologies %}
+                <div style="color:#94a3b8; font-size:0.875rem;">Aucune donnée digitale</div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if competitor.notes %}
+        <div class="card">
+            <div class="card-header"><h6 class="mb-0 fw-bold">📝 Notes</h6></div>
+            <div class="card-body">
+                <p style="font-size:0.875rem; margin:0;">{{ competitor.notes }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

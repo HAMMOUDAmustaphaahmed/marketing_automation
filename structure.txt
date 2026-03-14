@@ -1,0 +1,179 @@
+
+marketing_automation/
+│
+├── app.py                          # Point d'entrée principal Flask
+├── config.py                       # Configuration (DB, Mail, Groq API)
+├── requirements.txt                # Dépendances Python
+├── .env                            # Variables d'environnement (secrets)
+├── init_db.sql                     # Script SQL création base de données
+├── README.md                       # Documentation complète
+├── structure.txt                   # Ce fichier
+│
+├── models/
+│   └── __init__.py                 # Tous les modèles SQLAlchemy (MySQL)
+│       ├── User                    # Utilisateurs
+│       ├── Company                 # Entreprise (profil + description IA)
+│       ├── Competitor              # Concurrents (générés IA ou manuels)
+│       ├── Prospect                # Clients potentiels
+│       ├── EmailCampaign           # Campagnes email
+│       ├── EmailLog                # Historique envois email
+│       ├── Opportunity             # Opportunités CRM
+│       ├── Quote                   # Devis
+│       ├── QuoteItem               # Lignes de devis
+│       ├── Order                   # Bons de commande
+│       ├── MaintenanceContract     # Contrats de maintenance
+│       └── ActivityLog             # Journal d'activité
+│
+├── routes/
+│   ├── __init__.py
+│   ├── auth.py                     # Login, Register, Logout, Profile
+│   ├── dashboard.py                # Tableau de bord KPIs
+│   ├── competitors.py              # CRUD Concurrents + IA + PDF
+│   ├── prospects.py                # CRUD Prospects + IA + PDF
+│   ├── pipeline.py                 # Pipeline CRM (Devis, BC, Livraison, Maintenance)
+│   └── mailing.py                  # Campagnes Email + envoi masse/individuel
+│
+├── utils/
+│   ├── __init__.py
+│   ├── groq_ai.py                     # Intégration API Groq (xAI)
+│   │   ├── ask_groq()              # Appel générique à l'API
+│   │   ├── analyze_company_profile()  # Analyse description entreprise
+│   │   ├── generate_competitors()     # Génère liste concurrents
+│   │   ├── generate_prospects()       # Génère liste prospects
+│   │   ├── generate_email_template()  # Génère template email B2B
+│   │   └── generate_swot()            # Génère analyse SWOT
+│   └── pdf_generator.py            # Génération PDF (ReportLab)
+│       ├── generate_competitor_pdf()  # Fiche PDF concurrent
+│       ├── generate_prospect_pdf()    # Fiche PDF prospect
+│       └── generate_quote_pdf()       # Devis PDF professionnel
+│
+├── templates/
+│   ├── base.html                   # Layout principal (sidebar + topbar + flash)
+│   │
+│   ├── auth/
+│   │   ├── login.html              # Page de connexion
+│   │   ├── register.html           # Inscription + description entreprise
+│   │   └── profile.html            # Profil utilisateur + entreprise
+│   │
+│   ├── dashboard/
+│   │   └── index.html              # Dashboard : KPIs, funnel, actions rapides
+│   │
+│   ├── competitors/
+│   │   ├── index.html              # Liste concurrents (table + pagination + filtres)
+│   │   ├── form.html               # Formulaire ajout/modification
+│   │   └── view.html               # Fiche détaillée + SWOT + liens
+│   │
+│   ├── prospects/
+│   │   ├── index.html              # Liste prospects (filtres statut/secteur)
+│   │   ├── form.html               # Formulaire ajout/modification
+│   │   └── view.html               # Fiche détaillée + mise à jour statut
+│   │
+│   ├── pipeline/
+│   │   ├── index.html              # Pipeline Kanban (7 colonnes)
+│   │   ├── create_opportunity.html # Créer une opportunité depuis un prospect
+│   │   ├── opportunity.html        # Détail opportunité + devis + BC + maintenance
+│   │   ├── create_quote.html       # Créer devis (lignes ou upload)
+│   │   ├── create_order.html       # Créer bon de commande
+│   │   ├── create_maintenance.html # Créer contrat de maintenance
+│   │   └── maintenance_list.html   # Liste contrats de maintenance
+│   │
+│   └── mailing/
+│       ├── index.html              # Liste campagnes email
+│       ├── create.html             # Créer campagne + génération IA
+│       └── view.html               # Détail campagne + logs + envoi
+│
+└── static/
+    ├── css/
+    │   ├── main.css                # Styles globaux + variables + composants
+    │   ├── dashboard.css           # Styles spécifiques dashboard
+    │   ├── pipeline.css            # Styles kanban + pipeline
+    │   └── auth.css                # Styles pages login/register
+    │
+    ├── js/
+    │   ├── main.js                 # Scripts globaux (alertes, helpers)
+    │   ├── dashboard.js            # Graphiques Chart.js dashboard
+    │   ├── competitors.js          # Actions concurrents (search, delete confirm)
+    │   ├── prospects.js            # Actions prospects (filtres, status update)
+    │   ├── pipeline.js             # Kanban drag & drop, pipeline actions
+    │   ├── mailing.js              # Éditeur email, génération IA template
+    │   └── quote.js                # Calcul devis (lignes, totaux, TVA)
+    │
+    ├── img/
+    │   ├── logo.svg                # Logo SMarketing
+    │   └── empty-state.svg         # Illustration état vide
+    │
+    └── uploads/                    # Fichiers uploadés (ignoré par Git)
+        ├── quotes/                 # Devis uploadés
+        ├── orders/                 # Bons de commande uploadés
+        ├── pv/                     # PV de réception uploadés
+        └── contracts/              # Contrats de maintenance uploadés
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FLUX DE DONNÉES — CYCLE DE VENTE COMPLET
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [INSCRIPTION]
+       │
+       ▼
+  Description entreprise ──► Groq AI ──► Mots-clés + ICP
+       │
+       ├──► Générer 500 Concurrents (IA) ──► PDF par concurrent
+       │
+       └──► Générer 500 Prospects (IA)   ──► PDF par prospect
+                   │
+                   ▼
+           [MASS MAILING]
+           Email en masse ou individuel
+           Template généré par IA Groq
+                   │
+                   ▼
+           Prospect répond ──► Statut : "A répondu"
+                   │
+                   ▼
+           [OPPORTUNITÉ CRÉÉE]
+           Titre, Produit, Valeur, Probabilité
+                   │
+                   ├──► Devis créé (interne ou upload) ──► Export PDF
+                   │
+                   ├──► Opportunité GAGNÉE
+                   │         │
+                   │         └──► Bon de Commande (interne ou upload)
+                   │                   │
+                   │                   └──► Livraison confirmée + PV
+                   │                             │
+                   │                             └──► Contrat Maintenance
+                   │
+                   └──► Opportunité PERDUE (raison enregistrée)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TABLES MYSQL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  users                 → id, name, email, password, company_id, role
+  companies             → id, name, logo, country, sector, description, keywords, icp_profile
+  competitors           → id, company_id, name, website, country, similarity_score, swot_analysis, ...
+  prospects             → id, company_id, company_name, sector, email, phone, relevance_score, status, ...
+  email_campaigns       → id, company_id, name, subject, body_html, status, total_sent, ...
+  email_logs            → id, campaign_id, prospect_id, status, sent_at, replied_at
+  opportunities         → id, company_id, prospect_id, title, value, probability, stage, ...
+  quotes                → id, opportunity_id, quote_number, source, total_ht, total_ttc, status
+  quote_items           → id, quote_id, description, quantity, unit_price, discount, total
+  orders                → id, opportunity_id, order_number, amount, delivery_status, pv_file_path
+  maintenance_contracts → id, order_id, company_id, contract_number, start_date, end_date, annual_value
+  activity_logs         → id, company_id, user_id, entity_type, action, description
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TECHNOLOGIES UTILISÉES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Backend       : Python 3.10+ / Flask 3.0
+  Base de données : MySQL 8.0 / SQLAlchemy ORM
+  IA            : Groq API (xAI) — modèle groq-3
+  PDF           : ReportLab
+  Email         : Flask-Mail (SMTP)
+  Auth          : Flask-Login + Werkzeug (hash bcrypt)
+  Frontend      : Bootstrap 5.3 + Chart.js + Font Awesome 6
+  Upload        : Werkzeug secure_filename

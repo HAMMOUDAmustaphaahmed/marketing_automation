@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}Nouvelle Opportunité Maintenance{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('maintenance.index') }}">Maintenance CRM</a></li>
+<li class="breadcrumb-item active">Nouvelle</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header"><h1>🔧 Nouvelle Opportunité de Maintenance</h1>
+<p>Vente de contrats de maintenance préventive ou curative</p></div>
+
+<div class="row justify-content-center"><div class="col-lg-8">
+<div class="card">
+<div class="card-header"><h6 class="mb-0 fw-bold">Informations du contrat</h6></div>
+<div class="card-body">
+<form action="{{ url_for('maintenance.new') }}" method="POST">
+
+    <!-- Client -->
+    <div class="mb-3">
+        <label class="form-label fw-bold"><i class="fas fa-building me-1 text-primary"></i>Client / Prospect</label>
+        <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <input type="text" id="prospectSearch" class="form-control" placeholder="Tapez pour rechercher..." autocomplete="off">
+        </div>
+        <select name="prospect_id" id="prospectSelect" class="form-select mt-1" size="1">
+            <option value="">— Aucun prospect lié —</option>
+            {% for p in prospects %}
+            <option value="{{ p.id }}" data-name="{{ p.company_name }}" data-city="{{ p.city or '' }}">
+                {{ p.company_name }}{% if p.city %} — {{ p.city }}{% endif %}
+            </option>
+            {% endfor %}
+        </select>
+        <div class="form-text">Pas encore de prospect ? <a href="{{ url_for('prospects.add') }}" target="_blank">Créer un prospect</a></div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label fw-bold">Titre de l'opportunité *</label>
+        <input type="text" name="title" class="form-control" required
+               placeholder="ex: Contrat maintenance CVC — Hôtel Médina Monastir">
+    </div>
+
+    <!-- Type de maintenance -->
+    <div class="mb-3">
+        <label class="form-label fw-bold">Type de maintenance</label>
+        <div class="d-flex gap-3 flex-wrap">
+            <label class="d-flex align-items-center gap-2 p-3 rounded border" style="cursor:pointer; min-width:160px;">
+                <input type="radio" name="maint_type" value="preventive" checked>
+                <div>
+                    <div class="fw-bold" style="font-size:.875rem;">🔵 Préventive</div>
+                    <div style="font-size:.75rem; color:#64748b;">Visites planifiées, contrôles réguliers</div>
+                </div>
+            </label>
+            <label class="d-flex align-items-center gap-2 p-3 rounded border" style="cursor:pointer; min-width:160px;">
+                <input type="radio" name="maint_type" value="curative">
+                <div>
+                    <div class="fw-bold" style="font-size:.875rem;">🔴 Curative</div>
+                    <div style="font-size:.75rem; color:#64748b;">Dépannage à la demande, interventions urgentes</div>
+                </div>
+            </label>
+            <label class="d-flex align-items-center gap-2 p-3 rounded border" style="cursor:pointer; min-width:160px;">
+                <input type="radio" name="maint_type" value="both">
+                <div>
+                    <div class="fw-bold" style="font-size:.875rem;">🟢 Mixte</div>
+                    <div style="font-size:.75rem; color:#64748b;">Préventive + curative incluses</div>
+                </div>
+            </label>
+        </div>
+    </div>
+
+    <!-- Type de parc -->
+    <div class="mb-3">
+        <label class="form-label fw-bold">Type de parc à maintenir</label>
+        <select name="park_type" class="form-select">
+            {% for val, label in park_types.items() %}
+            <option value="{{ val }}">{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label fw-bold">Description du parc</label>
+        <textarea name="park_description" class="form-control" rows="2"
+                  placeholder="ex: 12 splits muraux Samsung 9000 BTU + 3 cassettes Daikin 18000 BTU, installés en 2019..."></textarea>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <label class="form-label fw-bold">Nombre d'équipements</label>
+            <input type="number" name="nb_equipments" class="form-control" placeholder="ex: 15" min="1">
+        </div>
+        <div class="col-md-8">
+            <label class="form-label fw-bold">Adresse du site</label>
+            <input type="text" name="site_address" class="form-control" placeholder="ex: Zone industrielle Monastir, BP 123">
+        </div>
+    </div>
+
+    <hr>
+
+    <!-- Valeur & contrat -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <label class="form-label fw-bold">Valeur annuelle</label>
+            <div class="input-group">
+                <input type="number" name="value" class="form-control" placeholder="0" step="0.01" min="0">
+                <select name="currency" class="form-select" style="max-width:80px;">
+                    <option>TND</option><option>EUR</option><option>USD</option>
+                </select>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label fw-bold">Durée du contrat (mois)</label>
+            <input type="number" name="contract_duration" class="form-control" value="12" min="1" max="60">
+        </div>
+        <div class="col-md-4">
+            <label class="form-label fw-bold">Visites préventives/an</label>
+            <input type="number" name="visits_per_year" class="form-control" value="4" min="1" max="52">
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <label class="form-label fw-bold">Probabilité de succès (%)</label>
+            <input type="number" name="probability" class="form-control" value="40" min="0" max="100">
+        </div>
+        <div class="col-md-6">
+            <label class="form-label fw-bold">Prochaine relance</label>
+            <input type="date" name="next_followup" class="form-control">
+        </div>
+    </div>
+    <div class="mb-3">
+        <label class="form-label fw-bold">Prochaine visite planifiée</label>
+        <input type="date" name="next_visit" class="form-control">
+    </div>
+    <div class="mb-4">
+        <label class="form-label fw-bold">Notes internes</label>
+        <textarea name="notes" class="form-control" rows="2" placeholder="Historique, contexte, particularités du site..."></textarea>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-tools me-1"></i>Créer l'opportunité</button>
+        <a href="{{ url_for('maintenance.index') }}" class="btn btn-light">Annuler</a>
+    </div>
+</form>
+</div></div>
+</div></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Live search for prospect select
+const searchInput = document.getElementById('prospectSearch');
+const sel = document.getElementById('prospectSelect');
+const allOptions = Array.from(sel.options).map(o => ({val: o.value, text: o.text, el: o}));
+
+searchInput.addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    allOptions.forEach(o => {
+        o.el.style.display = (!q || o.text.toLowerCase().includes(q)) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

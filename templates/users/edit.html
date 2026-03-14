@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}Modifier — {{ user.name }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('users.index') }}">Utilisateurs</a></li>
+<li class="breadcrumb-item active">{{ user.name }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>✏️ Modifier les droits</h1>
+    <p>{{ user.name }} — {{ user.email }}</p>
+</div>
+
+<div class="row justify-content-center"><div class="col-lg-7">
+<form action="{{ url_for('users.edit', id=user.id) }}" method="POST">
+
+<div class="card mb-3">
+    <div class="card-header"><h6 class="mb-0 fw-bold">👤 Informations du compte</h6></div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Nom complet</label>
+                <input type="text" name="name" class="form-control" value="{{ user.name }}" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Rôle</label>
+                <select name="role" class="form-select" id="roleSelect" onchange="handleRole(this.value)">
+                    <option value="member" {% if user.role == 'member' %}selected{% endif %}>👤 Membre — droits personnalisés</option>
+                    <option value="admin"  {% if user.role == 'admin'  %}selected{% endif %}>👑 Administrateur — tous les droits</option>
+                </select>
+            </div>
+            <div class="col-12">
+                <label class="form-label fw-bold">
+                    Nouveau mot de passe
+                    <span class="text-muted fw-normal" style="font-size:.8rem;">(laisser vide pour ne pas changer)</span>
+                </label>
+                <input type="password" name="new_password" class="form-control" placeholder="Min. 6 caractères">
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3" id="permsCard" {% if user.role == 'admin' %}style="opacity:.4;pointer-events:none;"{% endif %}>
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold">🔐 Droits d'accès</h6>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="setPreset('readonly')">Lecture seule</button>
+            <button type="button" class="btn btn-sm btn-outline-success" onclick="setPreset('standard')">Standard</button>
+            <button type="button" class="btn btn-sm btn-outline-warning" onclick="setPreset('full')">Complet</button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+
+            <!-- READ -->
+            <div class="col-md-6">
+                <label class="d-flex align-items-start gap-3 p-3 rounded border perm-card" id="card_can_read"
+                       style="cursor:pointer; {% if user.can_read %}border-color:#1a56db;background:#eff6ff;{% endif %}">
+                    <input type="checkbox" name="can_read" class="form-check-input row-perm mt-1 flex-shrink-0"
+                           data-key="can_read" {% if user.can_read %}checked{% endif %}
+                           style="width:18px;height:18px;" onchange="styleCard('can_read', this.checked)">
+                    <div>
+                        <div class="fw-bold" style="font-size:.875rem;"><i class="fas fa-eye me-1 text-primary"></i>Lire</div>
+                        <div class="text-muted" style="font-size:.78rem;">Consulter prospects, pipeline, maintenance</div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- CREATE -->
+            <div class="col-md-6">
+                <label class="d-flex align-items-start gap-3 p-3 rounded border perm-card" id="card_can_create"
+                       style="cursor:pointer; {% if user.can_create %}border-color:#1a56db;background:#eff6ff;{% endif %}">
+                    <input type="checkbox" name="can_create" class="form-check-input row-perm mt-1 flex-shrink-0"
+                           data-key="can_create" {% if user.can_create %}checked{% endif %}
+                           style="width:18px;height:18px;" onchange="styleCard('can_create', this.checked)">
+                    <div>
+                        <div class="fw-bold" style="font-size:.875rem;"><i class="fas fa-plus me-1 text-success"></i>Créer</div>
+                        <div class="text-muted" style="font-size:.78rem;">Ajouter prospects, opportunités, campagnes</div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- EDIT -->
+            <div class="col-md-6">
+                <label class="d-flex align-items-start gap-3 p-3 rounded border perm-card" id="card_can_edit"
+                       style="cursor:pointer; {% if user.can_edit %}border-color:#1a56db;background:#eff6ff;{% endif %}">
+                    <input type="checkbox" name="can_edit" class="form-check-input row-perm mt-1 flex-shrink-0"
+                           data-key="can_edit" {% if user.can_edit %}checked{% endif %}
+                           style="width:18px;height:18px;" onchange="styleCard('can_edit', this.checked)">
+                    <div>
+                        <div class="fw-bold" style="font-size:.875rem;"><i class="fas fa-edit me-1 text-warning"></i>Modifier</div>
+                        <div class="text-muted" style="font-size:.78rem;">Éditer les données existantes</div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- DELETE -->
+            <div class="col-md-6">
+                <label class="d-flex align-items-start gap-3 p-3 rounded border perm-card" id="card_can_delete"
+                       style="cursor:pointer; {% if user.can_delete %}border-color:#dc2626;background:#fff5f5;{% endif %}">
+                    <input type="checkbox" name="can_delete" class="form-check-input row-perm mt-1 flex-shrink-0"
+                           data-key="can_delete" {% if user.can_delete %}checked{% endif %}
+                           style="width:18px;height:18px;" onchange="styleCard('can_delete', this.checked)">
+                    <div>
+                        <div class="fw-bold" style="font-size:.875rem;"><i class="fas fa-trash me-1 text-danger"></i>Supprimer</div>
+                        <div class="text-muted" style="font-size:.78rem;">Effacer des enregistrements définitivement</div>
+                    </div>
+                </label>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header"><h6 class="mb-0 fw-bold">🔘 Statut du compte</h6></div>
+    <div class="card-body">
+        <label class="d-flex align-items-center gap-3" style="cursor:pointer;">
+            <input type="checkbox" name="is_active" class="form-check-input"
+                   style="width:20px;height:20px;" {% if user.is_active %}checked{% endif %}>
+            <div>
+                <div class="fw-bold">Compte actif</div>
+                <div class="text-muted" style="font-size:.8rem;">Décochez pour bloquer l'accès sans supprimer le compte.</div>
+            </div>
+        </label>
+    </div>
+</div>
+
+<div class="d-flex gap-2">
+    <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Enregistrer les modifications</button>
+    <a href="{{ url_for('users.index') }}" class="btn btn-light">Annuler</a>
+</div>
+</form>
+</div></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function styleCard(key, checked) {
+    const card = document.getElementById('card_' + key);
+    if (!card) return;
+    const isDanger = key === 'can_delete';
+    card.style.borderColor = checked ? (isDanger ? '#dc2626' : '#1a56db') : '#e2e8f0';
+    card.style.background  = checked ? (isDanger ? '#fff5f5' : '#eff6ff') : '#fff';
+}
+
+function handleRole(role) {
+    const perms = document.getElementById('permsCard');
+    perms.style.opacity = role === 'admin' ? '.4' : '1';
+    perms.style.pointerEvents = role === 'admin' ? 'none' : '';
+    if (role === 'admin') setPreset('full');
+}
+
+function setPreset(p) {
+    const presets = {
+        'readonly': { can_read:true,  can_create:false, can_edit:false, can_delete:false },
+        'standard': { can_read:true,  can_create:true,  can_edit:true,  can_delete:false },
+        'full':     { can_read:true,  can_create:true,  can_edit:true,  can_delete:true  },
+    };
+    Object.entries(presets[p]).forEach(([k, v]) => {
+        const cb = document.querySelector(`input[name="${k}"]`);
+        if (cb) { cb.checked = v; styleCard(k, v); }
+    });
+}
+</script>
+{% endblock %}

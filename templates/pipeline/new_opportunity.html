@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}Nouvelle Opportunité{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Accueil</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('pipeline.index') }}">Pipeline CRM</a></li>
+<li class="breadcrumb-item active">Nouvelle Opportunité</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Nouvelle Opportunité</h1>
+    <p>Créez une opportunité commerciale et associez-la à un prospect</p>
+</div>
+
+<div class="row justify-content-center">
+<div class="col-lg-7">
+<div class="card">
+    <div class="card-header">
+        <h6 class="mb-0 fw-bold">⭐ Informations de l'opportunité</h6>
+    </div>
+    <div class="card-body">
+        <form action="{{ url_for('pipeline.new_opportunity') }}" method="POST">
+
+            <!-- Prospect selector -->
+            <div class="mb-4">
+                <label class="form-label fw-bold">
+                    <i class="fas fa-building me-1 text-primary"></i>Prospect / Client associé
+                </label>
+                {% if prospects %}
+                <div class="input-group mb-1">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" id="prospectSearch" class="form-control" 
+                           placeholder="Tapez pour filtrer la liste..." autocomplete="off">
+                </div>
+                <select name="prospect_id" class="form-select" id="prospectSelect" onchange="fillFromProspect(this)" size="5" style="height:auto;">
+                    <option value="">— Sélectionner un prospect —</option>
+                    {% for p in prospects %}
+                    <option value="{{ p.id }}"
+                        data-sector="{{ p.sector or '' }}"
+                        data-contact="{{ p.contact_name or '' }}"
+                        data-email="{{ p.email or '' }}"
+                        data-title="{{ p.contact_title or '' }}">
+                        {{ p.company_name }}
+                        {% if p.sector %} — {{ p.sector }}{% endif %}
+                        {% if p.city %} ({{ p.city }}){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+                <!-- Prospect preview -->
+                <div id="prospectPreview" style="display:none;" class="mt-2 p-2 rounded"
+                     style="background:#f8fafc; border:1px solid #e2e8f0; font-size:0.8rem;">
+                    <span id="previewContact" class="me-3"></span>
+                    <span id="previewEmail" class="text-muted"></span>
+                </div>
+                <div class="form-text">
+                    Pas encore de prospect ?
+                    <a href="{{ url_for('prospects.add') }}" target="_blank">Créer un prospect</a>
+                </div>
+                {% else %}
+                <div class="alert alert-warning" style="font-size:0.875rem;">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Aucun prospect trouvé.
+                    <a href="{{ url_for('prospects.add') }}" class="fw-bold">Créer un prospect d'abord →</a>
+                </div>
+                {% endif %}
+            </div>
+
+            <hr class="my-3">
+
+            <!-- Titre -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">Titre de l'opportunité <span class="text-danger">*</span></label>
+                <input type="text" name="title" class="form-control"
+                       placeholder="ex: Installation CTA Hôtel Palm Beach — Lot Climatisation"
+                       required autofocus>
+                <div class="form-text">Soyez précis : produit + client + contexte</div>
+            </div>
+
+            <!-- Produit / Service -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">Produit / Service concerné</label>
+                <input type="text" name="product_service" class="form-control"
+                       placeholder="ex: Centrale de traitement d'air, Groupe froid 50kW...">
+            </div>
+
+            <!-- Valeur + Devise + Probabilité -->
+            <div class="row g-3 mb-3">
+                <div class="col-sm-5">
+                    <label class="form-label fw-bold">Valeur estimée</label>
+                    <div class="input-group">
+                        <input type="number" name="value" class="form-control"
+                               placeholder="0" step="0.01" min="0">
+                        <select name="currency" class="form-select" style="max-width:85px;">
+                            <option value="TND">TND</option>
+                            <option value="EUR">EUR</option>
+                            <option value="USD">USD</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <label class="form-label fw-bold">Probabilité (%)</label>
+                    <input type="number" name="probability" class="form-control"
+                           value="50" min="0" max="100" id="probInput"
+                           oninput="updateProb(this.value)">
+                </div>
+                <div class="col-sm-3 d-flex align-items-end">
+                    <div id="probDisplay" class="fw-bold fs-5 pb-1" style="color:#f59e0b;">50%</div>
+                </div>
+            </div>
+
+            <!-- Stade initial + Prochaine relance -->
+            <div class="row g-3 mb-3">
+                <div class="col-sm-6">
+                    <label class="form-label fw-bold">Stade initial</label>
+                    <select name="stage" class="form-select">
+                        <option value="replied"    selected>💬 A répondu</option>
+                        <option value="interested">⭐ Intéressé</option>
+                        <option value="quoted">📄 Devis envoyé</option>
+                    </select>
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label fw-bold">Prochaine relance</label>
+                    <input type="date" name="next_followup" class="form-control">
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="mb-4">
+                <label class="form-label fw-bold">Notes internes</label>
+                <textarea name="notes" class="form-control" rows="3"
+                          placeholder="Contexte, besoins du client, historique de l'échange..."></textarea>
+            </div>
+
+            <!-- Actions -->
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary" {% if not prospects %}disabled{% endif %}>
+                    <i class="fas fa-star me-1"></i>Créer l'opportunité
+                </button>
+                <a href="{{ url_for('pipeline.index') }}" class="btn btn-light">
+                    <i class="fas fa-arrow-left me-1"></i>Retour au pipeline
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateProb(val) {
+    const el = document.getElementById('probDisplay');
+    const color = val >= 70 ? '#059669' : val >= 40 ? '#f59e0b' : '#dc2626';
+    el.textContent = val + '%';
+    el.style.color = color;
+}
+
+function fillFromProspect(sel) {
+    // Live prospect search filter
+document.getElementById('prospectSearch').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    const sel = document.getElementById('prospectSelect');
+    Array.from(sel.options).forEach(opt => {
+        opt.style.display = !q || opt.text.toLowerCase().includes(q) ? '' : 'none';
+    });
+    // Auto-select if only one visible
+    const visible = Array.from(sel.options).filter(o => o.style.display !== 'none' && o.value);
+    if (visible.length === 1) { sel.value = visible[0].value; fillFromProspect(sel); }
+});
+
+const opt = sel.options[sel.selectedIndex];
+    const preview = document.getElementById('prospectPreview');
+    const contact = document.getElementById('previewContact');
+    const email   = document.getElementById('previewEmail');
+
+    if (!opt.value) {
+        preview.style.display = 'none';
+        return;
+    }
+
+    const contactName  = opt.dataset.contact;
+    const contactTitle = opt.dataset.title;
+    const emailAddr    = opt.dataset.email;
+
+    if (contactName || emailAddr) {
+        contact.textContent = contactName ? '👤 ' + contactName + (contactTitle ? ' — ' + contactTitle : '') : '';
+        email.textContent   = emailAddr ? '✉️ ' + emailAddr : '';
+        preview.style.display = 'block';
+        preview.style.background = '#eff6ff';
+        preview.style.border = '1px solid #bfdbfe';
+        preview.style.padding = '8px 12px';
+        preview.style.borderRadius = '8px';
+        preview.style.fontSize = '0.8rem';
+    } else {
+        preview.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

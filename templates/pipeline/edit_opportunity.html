@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Modifier l'opportunité{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('pipeline.index') }}">Pipeline</a></li>
+<li class="breadcrumb-item active">Modifier</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Modifier l'opportunité</h1>
+    <p>{{ opp.prospect.company_name if opp.prospect else '' }}</p>
+</div>
+
+<div class="row justify-content-center">
+<div class="col-lg-7">
+<div class="card">
+    <div class="card-header"><h6 class="mb-0 fw-bold">✏️ Informations de l'opportunité</h6></div>
+    <div class="card-body">
+        <form action="{{ url_for('pipeline.edit_opportunity', id=opp.id) }}" method="POST">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Titre de l'opportunité</label>
+                <input type="text" name="title" class="form-control" value="{{ opp.title }}" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Produit / Service</label>
+                <input type="text" name="product_service" class="form-control" value="{{ opp.product_service or '' }}">
+            </div>
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Valeur estimée</label>
+                    <div class="input-group">
+                        <input type="number" name="value" class="form-control" value="{{ opp.value or '' }}" step="0.01" min="0">
+                        <select name="currency" class="form-select" style="max-width:90px;">
+                            <option {% if opp.currency == 'TND' %}selected{% endif %}>TND</option>
+                            <option {% if opp.currency == 'EUR' %}selected{% endif %}>EUR</option>
+                            <option {% if opp.currency == 'USD' %}selected{% endif %}>USD</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Probabilité de succès (%)</label>
+                    <input type="number" name="probability" class="form-control" value="{{ opp.probability }}" min="0" max="100">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Prochaine relance</label>
+                <input type="date" name="next_followup" class="form-control"
+                       value="{{ opp.next_followup.strftime('%Y-%m-%d') if opp.next_followup else '' }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Stade actuel</label>
+                <select name="stage" class="form-select">
+                    {% for s, lbl in [('replied','A répondu'),('interested','Intéressé'),('quoted','Devis envoyé'),('won','Gagné'),('lost','Perdu'),('delivered','Livré'),('maintenance','Maintenance')] %}
+                    <option value="{{ s }}" {% if s == opp.stage %}selected{% endif %}>{{ lbl }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Notes internes</label>
+                <textarea name="notes" class="form-control" rows="3">{{ opp.notes or '' }}</textarea>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i>Enregistrer
+                </button>
+                <a href="{{ url_for('pipeline.view_opportunity', id=opp.id) }}" class="btn btn-light">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+</div>
+</div>
+{% endblock %}

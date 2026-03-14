@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+{% block title %}Historique Client{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Historique Client 360°</li>
+{% endblock %}
+
+{% block content %}
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+    <h1>🔍 Historique Client 360°</h1>
+    <p>Recherchez un client et consultez l'intégralité de son historique commercial</p>
+</div>
+
+<!-- SEARCH BOX -->
+<div class="card mb-4" style="border:none;background:linear-gradient(135deg,#1a56db 0%,#1e40af 100%);border-radius:16px;">
+    <div class="card-body p-4">
+        <div class="position-relative" style="max-width:620px;margin:0 auto;">
+            <div class="input-group input-group-lg shadow-sm" style="border-radius:12px;overflow:hidden;">
+                <span class="input-group-text" style="background:white;border:none;padding:0 16px;">
+                    <i class="fas fa-search" style="color:#1a56db;font-size:1.1rem;"></i>
+                </span>
+                <input type="text" id="clientSearch" class="form-control border-0"
+                       placeholder="Nom de l'entreprise cliente..."
+                       value="{{ query }}"
+                       autocomplete="off"
+                       style="font-size:1rem;padding:14px 0;">
+                <button class="btn px-4" id="searchBtn"
+                        style="background:#059669;color:white;border:none;font-weight:700;border-radius:0 12px 12px 0;">
+                    Rechercher
+                </button>
+            </div>
+            <!-- Autocomplete dropdown -->
+            <div id="autocomplete" class="shadow"
+                 style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border-radius:0 0 12px 12px;z-index:999;overflow:hidden;border:1px solid #e2e8f0;border-top:none;"></div>
+        </div>
+        <div class="text-center mt-2" style="font-size:.8rem;color:rgba(255,255,255,.7);">
+            Tapez au moins 2 caractères — l'autocomplétion liste vos prospects enregistrés
+        </div>
+    </div>
+</div>
+
+{% if query and not client %}
+<div class="alert" style="background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:10px;">
+    <i class="fas fa-exclamation-circle me-2"></i>
+    Aucun client trouvé pour <strong>"{{ query }}"</strong>.
+    <a href="{{ url_for('prospects.index') }}" class="ms-2 fw-bold">Voir tous les prospects →</a>
+</div>
+{% endif %}
+
+{% if client and stats %}
+<!-- CLIENT HEADER CARD -->
+<div class="card mb-4" style="border:none;border-radius:16px;overflow:hidden;">
+    <div style="background:linear-gradient(135deg,#0f172a,#1e293b);padding:1.75rem 2rem;">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <!-- Avatar initiales -->
+                <div style="width:60px;height:60px;border-radius:14px;background:linear-gradient(135deg,#1a56db,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;color:white;flex-shrink:0;">
+                    {{ client.company_name[0] }}
+                </div>
+                <div>
+                    <h2 style="color:white;margin:0;font-size:1.4rem;font-weight:800;">{{ client.company_name }}</h2>
+                    <div style="color:#94a3b8;font-size:.875rem;margin-top:3px;">
+                        {{ client.sector or '' }}
+                        {% if client.city %} · {{ client.city }}{% endif %}
+                        {% if client.country %}, {{ client.country }}{% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{{ url_for('prospects.view', id=client.id) }}" class="btn btn-sm"
+                   style="background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);">
+                    <i class="fas fa-external-link-alt me-1"></i>Fiche prospect
+                </a>
+                <a href="{{ url_for('pipeline.new_opportunity') }}?prospect_id={{ client.id }}" class="btn btn-sm btn-success">
+                    <i class="fas fa-star me-1"></i>Nouvelle opportunité
+                </a>
+            </div>
+        </div>
+
+        <!-- KEY METRICS ROW -->
+        <div class="row g-3 mt-3">
+            {% for label, val, icon, color in [
+                ('CA réalisé', "%.0f"|format(stats.total_won_value) ~ ' TND', 'fa-coins', '#fbbf24'),
+                ('Commandes', stats.total_orders, 'fa-shopping-cart', '#34d399'),
+                ('Devis envoyés', stats.total_quotes, 'fa-file-alt', '#a78bfa'),
+                ('Emails envoyés', stats.emails_sent, 'fa-envelope', '#60a5fa'),
+                ('Taux conversion', stats.conversion_rate|string ~ '%', 'fa-chart-line', '#f472b6'),
+                ('Pipeline actif', "%.0f"|format(stats.pipeline_value) ~ ' TND', 'fa-funnel-dollar', '#fb923c'),
+            ] %}
+            <div class="col-6 col-md-4 col-xl-2">
+                <div style="background:rgba(255,255,255,.07);border-radius:10px;padding:.875rem;text-align:center;">
+                    <i class="fas {{ icon }}" style="color:{{ color }};font-size:1.1rem;margin-bottom:6px;display:block;"></i>
+                    <div style="color:white;font-size:1.1rem;font-weight:800;">{{ val }}</div>
+                    <div style="color:#94a3b8;font-size:.7rem;margin-top:2px;">{{ label }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- LEFT — DETAILED STATS -->
+    <div class="col-lg-4">
+
+        <!-- Contact -->
+        <div class="card mb-3">
+            <div class="card-header"><h6 class="mb-0 fw-bold">👤 Contact principal</h6></div>
+            <div class="card-body">
+                <div class="fw-bold" style="font-size:.95rem;">{{ client.contact_name or '—' }}</div>
+                <div class="text-muted mb-2" style="font-size:.8rem;">{{ client.contact_title or '' }}</div>
+                {% if client.email %}
+                <div style="font-size:.825rem;"><i class="fas fa-envelope me-2 text-primary"></i>
+                    <a href="mailto:{{ client.email }}">{{ client.email }}</a></div>
+                {% endif %}
+                {% if client.phone %}
+                <div style="font-size:.825rem;margin-top:4px;"><i class="fas fa-phone me-2 text-muted"></i>{{ client.phone }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Opportunités stats -->
+        <div class="card mb-3">
+            <div class="card-header"><h6 class="mb-0 fw-bold">💼 Opportunités</h6></div>
+            <div class="card-body p-0">
+                {% for label, val, color in [
+                    ('Total créées', stats.total_opportunities, '#1a56db'),
+                    ('En cours', stats.active_opportunities, '#d97706'),
+                    ('Gagnées ✅', stats.won_opportunities, '#059669'),
+                    ('Perdues ❌', stats.lost_opportunities, '#dc2626'),
+                    ('Livrées 🚚', stats.delivered_orders, '#0891b2'),
+                ] %}
+                <div class="d-flex justify-content-between px-3 py-2 border-bottom" style="font-size:.825rem;">
+                    <span class="text-muted">{{ label }}</span>
+                    <span class="fw-bold" style="color:{{ color }};">{{ val }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Devis & Commandes -->
+        <div class="card mb-3">
+            <div class="card-header"><h6 class="mb-0 fw-bold">📄 Devis & Commandes</h6></div>
+            <div class="card-body p-0">
+                {% for label, val, color in [
+                    ('Devis créés', stats.total_quotes, '#7c3aed'),
+                    ('Devis envoyés', stats.sent_quotes, '#1a56db'),
+                    ('Devis acceptés', stats.accepted_quotes, '#059669'),
+                    ('Bons de commande', stats.total_orders, '#059669'),
+                    ('Livrés', stats.delivered_orders, '#16a34a'),
+                ] %}
+                <div class="d-flex justify-content-between px-3 py-2 border-bottom" style="font-size:.825rem;">
+                    <span class="text-muted">{{ label }}</span>
+                    <span class="fw-bold" style="color:{{ color }};">{{ val }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Email stats -->
+        <div class="card mb-3">
+            <div class="card-header"><h6 class="mb-0 fw-bold">📧 Campagnes Email</h6></div>
+            <div class="card-body p-0">
+                {% for label, val, color in [
+                    ('Emails envoyés', stats.emails_sent, '#1a56db'),
+                    ('Emails ouverts', stats.emails_opened, '#d97706'),
+                    ('Taux d\'ouverture', stats.email_open_rate|string ~ '%', '#059669'),
+                    ('Réponses reçues', stats.emails_replied, '#7c3aed'),
+                    ('Taux de réponse', stats.email_reply_rate|string ~ '%', '#0891b2'),
+                ] %}
+                <div class="d-flex justify-content-between px-3 py-2 border-bottom" style="font-size:.825rem;">
+                    <span class="text-muted">{{ label }}</span>
+                    <span class="fw-bold" style="color:{{ color }};">{{ val }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Maintenance -->
+        {% if stats.maintenance_opps > 0 %}
+        <div class="card mb-3">
+            <div class="card-header"><h6 class="mb-0 fw-bold">🔧 Maintenance</h6></div>
+            <div class="card-body p-0">
+                {% for label, val, color in [
+                    ('Contrats totaux', stats.maintenance_opps, '#0891b2'),
+                    ('Contrats actifs', stats.maintenance_active, '#059669'),
+                    ('Valeur active TND', "%.0f"|format(stats.maint_value), '#0891b2'),
+                ] %}
+                <div class="d-flex justify-content-between px-3 py-2 border-bottom" style="font-size:.825rem;">
+                    <span class="text-muted">{{ label }}</span>
+                    <span class="fw-bold" style="color:{{ color }};">{{ val }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Dates -->
+        {% if stats.first_contact %}
+        <div class="card" style="background:#f8fafc;">
+            <div class="card-body py-2 px-3" style="font-size:.75rem;color:#94a3b8;">
+                <div><strong>Premier contact :</strong> {{ stats.first_contact.strftime('%d/%m/%Y') }}</div>
+                <div><strong>Dernier contact :</strong> {{ stats.last_contact.strftime('%d/%m/%Y') }}</div>
+                <div><strong>Relation de :</strong>
+                    {% set days = (stats.last_contact - stats.first_contact).days %}
+                    {% if days >= 365 %}{{ (days/365)|round(1) }} an(s)
+                    {% elif days >= 30 %}{{ (days/30)|int }} mois
+                    {% else %}{{ days }} jours{% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- RIGHT — TIMELINE -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold">📋 Timeline complète — {{ stats.timeline|length }} événements</h6>
+                <!-- Filter pills -->
+                <div class="d-flex gap-1 flex-wrap">
+                    {% for key, label, color in [
+                        ('all', 'Tout', '#64748b'),
+                        ('opportunity', 'Opps', '#1a56db'),
+                        ('quote', 'Devis', '#7c3aed'),
+                        ('order', 'BC', '#059669'),
+                        ('email', 'Emails', '#d97706'),
+                        ('maintenance', 'Maint.', '#0891b2'),
+                    ] %}
+                    <button class="btn btn-sm filter-btn {% if key == 'all' %}active{% endif %}"
+                            data-filter="{{ key }}"
+                            style="font-size:.68rem;padding:2px 8px;background:{{ color }}20;color:{{ color }};border:1px solid {{ color }}40;">
+                        {{ label }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card-body" style="max-height:700px;overflow-y:auto;">
+                {% if stats.timeline %}
+                <div style="position:relative;padding-left:28px;">
+                    <div style="position:absolute;left:10px;top:0;bottom:0;width:2px;background:#e2e8f0;"></div>
+                    {% for item in stats.timeline %}
+                    <div class="timeline-item" data-type="{{ item.type }}"
+                         style="position:relative;margin-bottom:18px;">
+                        <div style="position:absolute;left:-23px;top:5px;width:14px;height:14px;border-radius:50%;background:{{ item.color }};border:2px solid white;box-shadow:0 0 0 2px {{ item.color }}40;"></div>
+                        <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                            <div style="flex:1;min-width:200px;">
+                                <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                    <i class="{{ item.icon }}" style="color:{{ item.color }};font-size:.8rem;"></i>
+                                    <span class="fw-bold" style="font-size:.825rem;">{{ item.label }}</span>
+                                    {% if item.sub %}
+                                    <span style="font-size:.72rem;background:{{ item.color }}15;color:{{ item.color }};padding:1px 8px;border-radius:10px;border:1px solid {{ item.color }}30;">
+                                        {{ item.sub }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                {% if item.link_type == 'opp' %}
+                                <a href="{{ url_for('pipeline.view_opportunity', id=item.link_id) }}"
+                                   style="font-size:.75rem;color:#94a3b8;">
+                                   Voir l'opportunité <i class="fas fa-arrow-right ms-1"></i>
+                                </a>
+                                {% elif item.link_type == 'maint' %}
+                                <a href="{{ url_for('maintenance.view', id=item.link_id) }}"
+                                   style="font-size:.75rem;color:#94a3b8;">
+                                   Voir le contrat <i class="fas fa-arrow-right ms-1"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                            <div style="font-size:.72rem;color:#94a3b8;white-space:nowrap;">
+                                {% if item.date %}{{ item.date.strftime('%d/%m/%Y %H:%M') }}{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-history fa-3x mb-3 d-block opacity-25"></i>
+                    Aucune activité enregistrée pour ce client.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Autocomplete
+const input = document.getElementById('clientSearch');
+const acDiv = document.getElementById('autocomplete');
+
+let debounceTimer;
+input.addEventListener('input', function() {
+    clearTimeout(debounceTimer);
+    const q = this.value.trim();
+    if (q.length < 2) { acDiv.style.display='none'; return; }
+    debounceTimer = setTimeout(() => {
+        fetch(`{{ url_for('intelligence.client_history') }}?q=${encodeURIComponent(q)}&autocomplete=1`)
+            .then(r => r.json())
+            .then(data => {
+                if (!data.length) { acDiv.style.display='none'; return; }
+                acDiv.innerHTML = data.map(p => `
+                    <div class="ac-item" onclick="selectClient('${p.name.replace(/'/g,"\\'")}', ${p.id})"
+                         style="padding:10px 16px;cursor:pointer;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:10px;">
+                        <div style="width:32px;height:32px;border-radius:8px;background:#1a56db20;display:flex;align-items:center;justify-content:center;font-weight:700;color:#1a56db;flex-shrink:0;">
+                            ${p.name[0].toUpperCase()}
+                        </div>
+                        <div>
+                            <div style="font-weight:600;font-size:.875rem;">${p.name}</div>
+                            <div style="font-size:.75rem;color:#94a3b8;">${p.sector}${p.city ? ' · ' + p.city : ''}</div>
+                        </div>
+                    </div>`).join('');
+                acDiv.style.display = 'block';
+            });
+    }, 300);
+});
+
+function selectClient(name, id) {
+    input.value = name;
+    acDiv.style.display = 'none';
+    window.location.href = `{{ url_for('intelligence.client_history') }}?q=${encodeURIComponent(name)}`;
+}
+
+document.getElementById('searchBtn').addEventListener('click', function() {
+    const q = input.value.trim();
+    if (q) window.location.href = `{{ url_for('intelligence.client_history') }}?q=${encodeURIComponent(q)}`;
+});
+input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('searchBtn').click();
+});
+document.addEventListener('click', e => {
+    if (!acDiv.contains(e.target) && e.target !== input) acDiv.style.display='none';
+});
+
+// Add hover effect to AC items
+acDiv.addEventListener('mouseover', e => {
+    const item = e.target.closest('.ac-item');
+    if (item) item.style.background='#f8fafc';
+});
+acDiv.addEventListener('mouseout', e => {
+    const item = e.target.closest('.ac-item');
+    if (item) item.style.background='';
+});
+
+// Timeline filter
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const filter = this.dataset.filter;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        document.querySelectorAll('.timeline-item').forEach(item => {
+            item.style.display = (filter === 'all' || item.dataset.type === filter) ? '' : 'none';
+        });
+    });
+});
+</script>
+{% endblock %}

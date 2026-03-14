@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Contrats de Maintenance{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Accueil</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('pipeline.index') }}">Pipeline</a></li>
+<li class="breadcrumb-item active">Maintenance</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1>Contrats de Maintenance</h1>
+        <p>Suivi des contrats actifs et à renouveler</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold">🔧 Liste des contrats</h6>
+        <span class="badge bg-primary">{{ contracts|length }} contrat(s)</span>
+    </div>
+    <div class="card-body p-0">
+        {% if contracts %}
+        <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>N° Contrat</th>
+                    <th>Client</th>
+                    <th>Début</th>
+                    <th>Fin</th>
+                    <th>Valeur annuelle</th>
+                    <th>Statut</th>
+                    <th>Jours restants</th>
+                    <th style="width:120px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for mc in contracts %}
+            {% set days_left = (mc.end_date - now.date()).days if mc.end_date else 999 %}
+            <tr class="{% if days_left <= 30 and days_left > 0 %}table-warning{% elif days_left <= 0 %}table-danger{% endif %}">
+                <td class="fw-bold" style="font-size:0.875rem;">{{ mc.contract_number }}</td>
+                <td style="font-size:0.875rem;">
+                    {% if mc.order and mc.order.opportunity and mc.order.opportunity.prospect %}
+                    <div class="fw-bold">{{ mc.order.opportunity.prospect.company_name }}</div>
+                    <div style="font-size:0.75rem; color:#94a3b8;">
+                        <a href="{{ url_for('pipeline.view_opportunity', id=mc.order.opportunity.id) }}" style="color:#94a3b8;">
+                            {{ mc.order.opportunity.title[:35] }}
+                        </a>
+                    </div>
+                    {% else %}—{% endif %}
+                </td>
+                <td style="font-size:0.8rem;">{{ mc.start_date.strftime('%d/%m/%Y') if mc.start_date else '—' }}</td>
+                <td style="font-size:0.8rem;">{{ mc.end_date.strftime('%d/%m/%Y') if mc.end_date else '—' }}</td>
+                <td style="font-size:0.875rem; font-weight:700; color:#1a56db;">
+                    {{ "%.0f"|format(mc.annual_value) if mc.annual_value else '—' }} TND
+                </td>
+                <td>
+                    <span class="badge
+                        {% if mc.status == 'active' %}bg-success
+                        {% elif mc.status == 'expired' %}bg-danger
+                        {% elif mc.status == 'renewed' %}bg-info
+                        {% else %}bg-secondary{% endif %}">
+                        {% if mc.status == 'active' %}Actif
+                        {% elif mc.status == 'expired' %}Expiré
+                        {% elif mc.status == 'renewed' %}Renouvelé
+                        {% else %}{{ mc.status }}{% endif %}
+                    </span>
+                </td>
+                <td>
+                    {% if days_left <= 0 %}
+                    <span class="badge bg-danger">Expiré</span>
+                    {% elif days_left <= 30 %}
+                    <span class="badge bg-warning text-dark">{{ days_left }}j ⚠️</span>
+                    {% else %}
+                    <span style="font-size:0.8rem; color:#64748b;">{{ days_left }}j</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="d-flex gap-1">
+                        <a href="{{ url_for('pipeline.edit_maintenance', id=mc.id) }}"
+                           class="btn btn-sm btn-outline-warning" title="Modifier">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <form action="{{ url_for('pipeline.delete_maintenance', id=mc.id) }}" method="POST"
+                              onsubmit="return confirm('Supprimer ce contrat de maintenance ?')">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+
+        <!-- Summary -->
+        <div class="p-3 border-top bg-light d-flex gap-4 flex-wrap" style="font-size:0.8125rem;">
+            <span><strong>Total annuel :</strong>
+                <span class="text-primary fw-bold">
+                    {{ "%.0f"|format(contracts|sum(attribute='annual_value')) }} TND
+                </span>
+            </span>
+            <span><strong>Actifs :</strong>
+                {{ contracts|selectattr('status','eq','active')|list|length }}
+            </span>
+            <span><strong>À renouveler (≤30j) :</strong>
+                <span class="text-warning fw-bold">
+                    {{ contracts|selectattr('end_date')|list|length }}
+                </span>
+            </span>
+        </div>
+
+        {% else %}
+        <div class="text-center py-5" style="color:#94a3b8;">
+            <i class="fas fa-tools fa-3x mb-3 d-block"></i>
+            <h5>Aucun contrat de maintenance</h5>
+            <p style="font-size:0.875rem;">Les contrats sont créés après la livraison d'une commande.</p>
+            <a href="{{ url_for('pipeline.index') }}" class="btn btn-outline-primary btn-sm mt-2">
+                <i class="fas fa-arrow-left me-1"></i>Retour au pipeline
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal Edit Maintenance (inline quick edit) -->
+{% endblock %}

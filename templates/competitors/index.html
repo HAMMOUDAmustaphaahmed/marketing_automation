@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% block title %}Concurrents{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Accueil</a></li>
+<li class="breadcrumb-item active">Concurrents</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h1>Analyse Concurrentielle</h1>
+        <p>Surveillance et analyse de vos concurrents directs</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('competitors.add') }}" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-plus me-1"></i>Ajouter manuellement
+        </a>
+        <button class="btn btn-ai btn-sm" data-bs-toggle="modal" data-bs-target="#generateModal">
+            <i class="fas fa-magic me-1"></i>Générer avec IA
+        </button>
+        <a href="{{ url_for('competitors.export_xlsx') }}" class="btn btn-outline-success btn-sm">
+            <i class="fas fa-file-excel me-1"></i>Export Excel
+        </a>
+    </div>
+</div>
+
+<!-- SEARCH & FILTER -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form class="d-flex gap-2 align-items-center" method="GET">
+            <div class="input-group input-group-sm" style="max-width:300px;">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" name="search" class="form-control" placeholder="Rechercher..." value="{{ search }}">
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Chercher</button>
+            {% if search %}<a href="{{ url_for('competitors.index') }}" class="btn btn-outline-secondary btn-sm">Réinitialiser</a>{% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- BULK BAR -->
+<div id="bulkBar" style="display:none;" class="alert py-2 mb-2 d-flex align-items-center gap-3" style="background:#eff6ff;border:1px solid #bfdbfe;">
+    <span id="selCount" class="fw-bold text-primary" style="font-size:.875rem;">0 sélectionné(s)</span>
+    <form action="{{ url_for('competitors.bulk_delete') }}" method="POST" id="bulkForm"
+          onsubmit="return confirmBulk()">
+        <div id="bulkIds"></div>
+        <button type="submit" class="btn btn-sm btn-danger">
+            <i class="fas fa-trash me-1"></i>Supprimer la sélection
+        </button>
+    </form>
+    <button class="btn btn-sm btn-outline-secondary ms-auto" onclick="clearSelection()">Annuler</button>
+</div>
+
+<!-- TABLE -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold">
+            <i class="fas fa-chess me-2 text-primary"></i>
+            {{ pagination.total }} Concurrents
+        </h6>
+        <label class="d-flex align-items-center gap-2" style="font-size:.8rem;cursor:pointer;">
+            <input type="checkbox" id="checkAll" onchange="toggleAll(this)" style="width:16px;height:16px;">
+            Tout sélectionner
+        </label>
+    </div>
+    <div class="card-body p-0">
+        {% if competitors %}
+        <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th style="width:36px;"></th>
+                    <th>Entreprise</th>
+                    <th>Secteur</th>
+                    <th>Pays</th>
+                    <th>Employés</th>
+                    <th>Similarité</th>
+                    <th>Note</th>
+                    <th>Source</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for c in competitors %}
+            <tr class="comp-row" id="crow-{{ c.id }}">
+                <td><input type="checkbox" class="row-check form-check-input" data-id="{{ c.id }}" style="width:16px;height:16px;" onchange="updateSelection()"></td>
+                <td>
+                    <div class="fw-600" style="font-size:0.875rem;">{{ c.name }}</div>
+                    {% if c.website %}
+                    <a href="{{ c.website }}" target="_blank" style="font-size:0.75rem; color:#94a3b8;">
+                        <i class="fas fa-external-link-alt me-1"></i>{{ c.website[:40] }}...
+                    </a>
+                    {% endif %}
+                </td>
+                <td style="font-size:0.8rem;">{{ c.sector or '—' }}</td>
+                <td style="font-size:0.8rem;">{{ c.country or '—' }}</td>
+                <td style="font-size:0.8rem;">{{ c.employees_count or '—' }}</td>
+                <td>
+                    {% if c.similarity_score %}
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="score-bar flex-grow-1" style="min-width:60px;">
+                            <div class="score-fill" style="width:{{ c.similarity_score }}%; background:{% if c.similarity_score >= 70 %}#059669{% elif c.similarity_score >= 40 %}#1a56db{% else %}#94a3b8{% endif %};"></div>
+                        </div>
+                        <span style="font-size:0.75rem; font-weight:600;">{{ c.similarity_score }}%</span>
+                    </div>
+                    {% else %}—{% endif %}
+                </td>
+                <td>
+                    {% if c.google_rating %}
+                    <span style="font-size:0.8rem;">⭐ {{ c.google_rating }}</span>
+                    {% else %}—{% endif %}
+                </td>
+                <td>
+                    <span class="badge {% if c.source == 'ai' %}bg-purple text-white{% else %}bg-light text-dark{% endif %}" style="font-size:0.65rem; {% if c.source == 'ai' %}background:#7c3aed!important;{% endif %}">
+                        {% if c.source == 'ai' %}🤖 IA{% else %}✍️ Manuel{% endif %}
+                    </span>
+                </td>
+                <td class="text-center">
+                    <div class="d-flex gap-1 justify-content-center">
+                        <a href="{{ url_for('competitors.view', id=c.id) }}" class="btn btn-sm btn-light" title="Voir"><i class="fas fa-eye"></i></a>
+                        <a href="{{ url_for('competitors.edit', id=c.id) }}" class="btn btn-sm btn-light" title="Modifier"><i class="fas fa-edit"></i></a>
+                        <a href="{{ url_for('competitors.pdf', id=c.id) }}" class="btn btn-sm btn-light" title="PDF"><i class="fas fa-file-pdf text-danger"></i></a>
+                        <form action="{{ url_for('competitors.delete', id=c.id) }}" method="POST" onsubmit="return confirm('Supprimer ce concurrent ?')">
+                            <button type="submit" class="btn btn-sm btn-light" title="Supprimer"><i class="fas fa-trash text-danger"></i></button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+
+        <!-- PAGINATION -->
+        {% if pagination.pages > 1 %}
+        <div class="d-flex justify-content-center py-3">
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    {% if pagination.has_prev %}<li class="page-item"><a class="page-link" href="?page={{ pagination.prev_num }}&search={{ search }}">‹</a></li>{% endif %}
+                    {% for page_num in pagination.iter_pages() %}
+                        {% if page_num %}
+                        <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                            <a class="page-link" href="?page={{ page_num }}&search={{ search }}">{{ page_num }}</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if pagination.has_next %}<li class="page-item"><a class="page-link" href="?page={{ pagination.next_num }}&search={{ search }}">›</a></li>{% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-5" style="color:#94a3b8;">
+            <i class="fas fa-chess fa-3x mb-3"></i>
+            <h5>Aucun concurrent trouvé</h5>
+            <p>Utilisez l'IA pour générer automatiquement votre liste de concurrents.</p>
+            <button class="btn btn-ai" data-bs-toggle="modal" data-bs-target="#generateModal">
+                <i class="fas fa-magic me-2"></i>Générer avec IA Grok
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- GENERATE MODAL -->
+<div class="modal fade" id="generateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header" style="background: linear-gradient(135deg, #667eea, #764ba2); color:white;">
+                <h5 class="modal-title"><i class="fas fa-magic me-2"></i>Générer des concurrents avec IA</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('competitors.generate') }}" method="POST">
+                <div class="modal-body">
+                    <p style="font-size:0.875rem; color:#64748b;">
+                        L'IA Grok va analyser votre profil d'entreprise et identifier vos principaux concurrents dans votre pays.
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label fw-600" style="font-size:0.875rem;">Nombre de concurrents à générer</label>
+                        <select name="count" class="form-select">
+                            <option value="10">10 concurrents</option>
+                            <option value="20" selected>20 concurrents</option>
+                            <option value="50">50 concurrents</option>
+                            <option value="100">100 concurrents</option>
+                        </select>
+                    </div>
+                    <div class="alert alert-info" style="font-size:0.8rem;">
+                        <i class="fas fa-info-circle me-1"></i>
+                        La génération peut prendre 20-60 secondes selon le nombre demandé.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-ai text-white">
+                        <i class="fas fa-magic me-1"></i>Générer maintenant
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('liveSearch').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.comp-row').forEach(row => {
+        row.style.display = !q || row.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+});
+
+let selected = new Set();
+function toggleAll(cb) {
+    document.querySelectorAll('.row-check').forEach(c => {
+        c.checked = cb.checked;
+        if(cb.checked) selected.add(c.dataset.id); else selected.delete(c.dataset.id);
+    });
+    updateBulkBar();
+}
+function updateSelection() {
+    selected.clear();
+    document.querySelectorAll('.row-check:checked').forEach(c => selected.add(c.dataset.id));
+    updateBulkBar();
+    document.getElementById('checkAll').checked =
+        document.querySelectorAll('.row-check').length === selected.size && selected.size > 0;
+}
+function updateBulkBar() {
+    document.getElementById('bulkBar').style.display = selected.size > 0 ? 'flex' : 'none';
+    document.getElementById('selCount').textContent = selected.size + ' sélectionné(s)';
+    const container = document.getElementById('bulkIds');
+    container.innerHTML = '';
+    selected.forEach(id => {
+        const inp = document.createElement('input');
+        inp.type='hidden'; inp.name='selected_ids[]'; inp.value=id;
+        container.appendChild(inp);
+    });
+}
+function clearSelection() {
+    selected.clear();
+    document.querySelectorAll('.row-check, #checkAll').forEach(c => c.checked=false);
+    updateBulkBar();
+}
+function confirmBulk() {
+    return confirm('Supprimer ' + selected.size + ' concurrent(s) ?');
+}
+</script>
+{% endblock %}

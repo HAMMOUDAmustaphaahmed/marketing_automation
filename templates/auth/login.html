@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion — SMarketing</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: 'Segoe UI', system-ui, sans-serif; }
+        .login-card { background: white; border-radius: 20px; padding: 2.5rem; width: 100%; max-width: 420px; box-shadow: 0 25px 50px rgba(0,0,0,.3); }
+        .brand { text-align: center; margin-bottom: 2rem; }
+        .brand h1 { font-size: 2rem; font-weight: 800; color: #0f172a; }
+        .brand h1 span { color: #1a56db; }
+        .brand p { color: #64748b; font-size: 0.875rem; }
+        .form-control { border-radius: 10px; padding: 0.75rem 1rem; border: 1.5px solid #e2e8f0; }
+        .form-control:focus { border-color: #1a56db; box-shadow: 0 0 0 3px rgba(26,86,219,.1); }
+        .btn-login { background: #1a56db; border: none; border-radius: 10px; padding: 0.75rem; font-weight: 600; width: 100%; font-size: 1rem; }
+        .btn-login:hover { background: #1e429f; }
+        label { font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 6px; }
+        .input-group-text { border-radius: 10px 0 0 10px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-right: none; color: #94a3b8; }
+        .input-group .form-control { border-radius: 0 10px 10px 0; border-left: none; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="brand">
+            <h1>S<span>Marketing</span></h1>
+            <p>Plateforme Marketing Automation & CRM</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ 'danger' if category == 'error' else category }} rounded-3 mb-3" style="font-size:0.875rem;">{{ message }}</div>
+        {% endfor %}
+        {% endwith %}
+
+        <form method="POST">
+            <div class="mb-3">
+                <label>Adresse email</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                    <input type="email" name="email" class="form-control" placeholder="vous@exemple.com" required>
+                </div>
+            </div>
+            <div class="mb-4">
+                <label>Mot de passe</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                    <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-login text-white">
+                <i class="fas fa-sign-in-alt me-2"></i>Se connecter
+            </button>
+        </form>
+        <hr class="my-3">
+        <p class="text-center mb-0" style="font-size:0.875rem; color:#64748b;">
+            Pas encore de compte ? 
+            <a href="{{ url_for('auth.register') }}" class="text-primary fw-600 text-decoration-none">Créer un compte</a>
+        </p>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

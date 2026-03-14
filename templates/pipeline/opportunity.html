@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% block title %}Opportunité — {{ opp.title }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Accueil</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('pipeline.index') }}">Pipeline</a></li>
+<li class="breadcrumb-item active">{{ opp.title[:30] }}...</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h1>{{ opp.title }}</h1>
+        <p>{{ opp.prospect.company_name if opp.prospect else '' }} — {{ opp.product_service or '' }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('pipeline.edit_opportunity', id=opp.id) }}" class="btn btn-warning btn-sm">
+            <i class="fas fa-edit me-1"></i>Modifier
+        </a>
+        <form action="{{ url_for('pipeline.delete_opportunity', id=opp.id) }}" method="POST"
+              onsubmit="return confirm('Supprimer cette opportunité ?')">
+            <button type="submit" class="btn btn-danger btn-sm">
+                <i class="fas fa-trash me-1"></i>Supprimer
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- LEFT: Opportunity Details -->
+    <div class="col-lg-8">
+        <!-- Info Card -->
+        <div class="card mb-3">
+            <div class="card-header"><h6 class="mb-0 fw-bold">Informations de l'opportunité</h6></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div style="font-size:0.75rem; color:#94a3b8; font-weight:600; text-transform:uppercase;">Valeur</div>
+                        <div class="fw-bold" style="font-size:1.25rem; color:#1a56db;">
+                            {{ "%.0f"|format(opp.value) if opp.value else '—' }} {{ opp.currency }}
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div style="font-size:0.75rem; color:#94a3b8; font-weight:600; text-transform:uppercase;">Probabilité</div>
+                        <div class="fw-bold" style="font-size:1.25rem;">{{ opp.probability }}%</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div style="font-size:0.75rem; color:#94a3b8; font-weight:600; text-transform:uppercase;">Stade actuel</div>
+                        <span class="badge-status status-{{ opp.stage }}" style="font-size:0.85rem; padding:6px 14px;">{{ opp.stage }}</span>
+                    </div>
+                    <div class="col-sm-6">
+                        <div style="font-size:0.75rem; color:#94a3b8; font-weight:600; text-transform:uppercase;">Prochaine relance</div>
+                        <div>{{ opp.next_followup.strftime('%d/%m/%Y') if opp.next_followup else '—' }}</div>
+                    </div>
+                    {% if opp.notes %}
+                    <div class="col-12">
+                        <div style="font-size:0.75rem; color:#94a3b8; font-weight:600; text-transform:uppercase;">Notes</div>
+                        <div style="font-size:0.875rem;">{{ opp.notes }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Update Stage -->
+        <div class="card mb-3">
+            <div class="card-header"><h6 class="mb-0 fw-bold">Mettre à jour le stade</h6></div>
+            <div class="card-body">
+                <form action="{{ url_for('pipeline.update_stage', id=opp.id) }}" method="POST" class="d-flex gap-2 flex-wrap">
+                    <select name="stage" class="form-select form-select-sm" style="max-width:200px;">
+                        {% for s, label in [('replied','A répondu'),('interested','Intéressé'),('quoted','Devis envoyé'),('won','Gagné'),('lost','Perdu'),('delivered','Livré'),('maintenance','Maintenance')] %}
+                        <option value="{{ s }}" {% if s == opp.stage %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="text" name="lost_reason" class="form-control form-control-sm" placeholder="Raison si perdu..." style="max-width:200px;">
+                    <button type="submit" class="btn btn-primary btn-sm">Mettre à jour</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- QUOTES -->
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold">📄 Devis</h6>
+                <a href="{{ url_for('pipeline.create_quote', opp_id=opp.id) }}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-plus me-1"></i>Nouveau devis
+                </a>
+            </div>
+            <div class="card-body p-0">
+                {% if opp.quotes %}
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>N°</th><th>Total HT</th><th>Total TTC</th><th>Statut</th><th>Actions</th></tr></thead>
+                    <tbody>
+                    {% for q in opp.quotes %}
+                    <tr>
+                        <td style="font-size:0.8rem; font-weight:600;">{{ q.quote_number }}</td>
+                        <td style="font-size:0.8rem;">{{ "%.2f"|format(q.total_ht) if q.total_ht else '—' }} TND</td>
+                        <td style="font-size:0.8rem; font-weight:600; color:#1a56db;">{{ "%.2f"|format(q.total_ttc) if q.total_ttc else '—' }} TND</td>
+                        <td><span class="badge bg-light text-dark" style="font-size:0.7rem;">{{ q.status }}</span></td>
+                        <td>
+                            <a href="{{ url_for('pipeline.quote_pdf', id=q.id) }}" class="btn btn-sm btn-light">
+                                <i class="fas fa-file-pdf text-danger"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="text-center py-3" style="color:#94a3b8; font-size:0.875rem;">Aucun devis</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- ORDERS -->
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold">📋 Bons de commande</h6>
+                <a href="{{ url_for('pipeline.create_order', opp_id=opp.id) }}" class="btn btn-sm btn-success">
+                    <i class="fas fa-plus me-1"></i>Nouveau BC
+                </a>
+            </div>
+            <div class="card-body p-0">
+                {% if opp.orders %}
+                {% for order in opp.orders %}
+                <div class="p-3 border-bottom">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="fw-600" style="font-size:0.875rem;">{{ order.order_number }}</div>
+                            <div style="font-size:0.8rem; color:#64748b;">
+                                Montant : {{ "%.0f"|format(order.amount) if order.amount else '—' }} TND
+                                | Statut : <span class="fw-600">{{ order.status }}</span>
+                            </div>
+                            {% if order.delivered_at %}
+                            <div style="font-size:0.75rem; color:#059669;">
+                                ✅ Livré le {{ order.delivered_at.strftime('%d/%m/%Y') }}
+                                {% if order.client_satisfaction == 'satisfied' %} — Client satisfait{% endif %}
+                                {% if order.client_satisfaction == 'pv_uploaded' %} — PV uploadé{% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="d-flex gap-1">
+                            {% if not order.delivered_at %}
+                            <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#deliverModal{{ order.id }}">
+                                <i class="fas fa-truck me-1"></i>Livraison
+                            </button>
+                            {% endif %}
+                            {% if order.delivered_at and not order.maintenance %}
+                            <a href="{{ url_for('pipeline.create_maintenance', order_id=order.id) }}" class="btn btn-sm btn-outline-warning">
+                                <i class="fas fa-tools me-1"></i>Maintenance
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Delivery Modal -->
+                <div class="modal fade" id="deliverModal{{ order.id }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header"><h5 class="modal-title">Confirmer la livraison</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                            <form action="{{ url_for('pipeline.deliver_order', id=order.id) }}" method="POST" enctype="multipart/form-data">
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label" style="font-size:0.875rem;">Satisfaction client</label>
+                                        <select name="satisfaction" class="form-select form-select-sm">
+                                            <option value="satisfied">✅ Client satisfait</option>
+                                            <option value="unsatisfied">⚠️ Client insatisfait</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label" style="font-size:0.875rem;">PV de réception (optionnel)</label>
+                                        <input type="file" name="pv_file" class="form-control form-control-sm" accept=".pdf,.doc,.docx,.jpg,.png">
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label" style="font-size:0.875rem;">Notes</label>
+                                        <textarea name="delivery_notes" class="form-control form-control-sm" rows="2"></textarea>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                                    <button type="submit" class="btn btn-success">Confirmer la livraison</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="text-center py-3" style="color:#94a3b8; font-size:0.875rem;">Aucun bon de commande</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: Prospect Info -->
+    <div class="col-lg-4">
+        {% if opp.prospect %}
+        <div class="card mb-3">
+            <div class="card-header"><h6 class="mb-0 fw-bold">🏢 Prospect</h6></div>
+            <div class="card-body">
+                <h6 class="fw-bold mb-1">{{ opp.prospect.company_name }}</h6>
+                <div style="font-size:0.8rem; color:#64748b;" class="mb-2">{{ opp.prospect.sector or '' }}</div>
+                {% if opp.prospect.contact_name %}
+                <div style="font-size:0.8rem;"><i class="fas fa-user me-2 text-muted"></i>{{ opp.prospect.contact_name }}</div>
+                <div style="font-size:0.8rem; color:#94a3b8;">{{ opp.prospect.contact_title or '' }}</div>
+                {% endif %}
+                {% if opp.prospect.email %}
+                <div style="font-size:0.8rem;" class="mt-1"><i class="fas fa-envelope me-2 text-muted"></i>
+                    <a href="mailto:{{ opp.prospect.email }}">{{ opp.prospect.email }}</a>
+                </div>
+                {% endif %}
+                {% if opp.prospect.phone %}
+                <div style="font-size:0.8rem;"><i class="fas fa-phone me-2 text-muted"></i>{{ opp.prospect.phone }}</div>
+                {% endif %}
+                <a href="{{ url_for('prospects.view', id=opp.prospect.id) }}" class="btn btn-sm btn-outline-primary w-100 mt-2" style="font-size:0.8rem;">
+                    Voir le profil complet
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Maintenance Contracts -->
+        {% for order in opp.orders %}
+        {% if order.maintenance %}
+        <div class="card">
+            <div class="card-header"><h6 class="mb-0 fw-bold">🔧 Contrat de maintenance</h6></div>
+            <div class="card-body" style="font-size:0.8rem;">
+                <div><strong>N° :</strong> {{ order.maintenance.contract_number }}</div>
+                <div><strong>Début :</strong> {{ order.maintenance.start_date.strftime('%d/%m/%Y') if order.maintenance.start_date else '—' }}</div>
+                <div><strong>Fin :</strong> {{ order.maintenance.end_date.strftime('%d/%m/%Y') if order.maintenance.end_date else '—' }}</div>
+                <div><strong>Valeur annuelle :</strong> {{ "%.0f"|format(order.maintenance.annual_value) if order.maintenance.annual_value else '—' }} TND</div>
+                <span class="badge {% if order.maintenance.status == 'active' %}bg-success{% else %}bg-secondary{% endif %} mt-1">
+                    {{ order.maintenance.status }}
+                </span>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

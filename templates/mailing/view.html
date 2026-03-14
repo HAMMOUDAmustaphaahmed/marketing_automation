@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Campagne — {{ campaign.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+    <div>
+        <h1>{{ campaign.name }}</h1>
+        <p>{{ campaign.subject }}</p>
+    </div>
+    {% if campaign.status != 'sent' %}
+    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#sendModal">
+        <i class="fas fa-paper-plane me-1"></i>Envoyer la campagne
+    </button>
+    {% endif %}
+</div>
+
+<!-- Stats -->
+<div class="row g-3 mb-4">
+    {% for label, value, color in [('Envoyés', campaign.total_sent, '#1a56db'), ('Ouverts', campaign.total_opened, '#059669'), ('Cliqués', campaign.total_clicked, '#7c3aed'), ('Répondus', campaign.total_replied, '#d97706')] %}
+    <div class="col-sm-6 col-xl-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="fw-bold" style="font-size:1.75rem; color:{{ color }};">{{ value }}</div>
+                <div style="font-size:0.8rem; color:#94a3b8;">{{ label }}</div>
+                {% if campaign.total_sent > 0 %}
+                <div style="font-size:0.75rem; color:#64748b;">{{ "%.0f"|format(value / campaign.total_sent * 100) }}%</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Email logs table -->
+<div class="card">
+    <div class="card-header"><h6 class="mb-0 fw-bold">Historique d'envoi</h6></div>
+    <div class="card-body p-0">
+        {% if logs %}
+        <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>Prospect</th><th>Email</th><th>Statut</th><th>Envoyé le</th><th>Action</th></tr></thead>
+            <tbody>
+            {% for log in logs %}
+            <tr>
+                <td style="font-size:0.8rem;">{{ log.prospect.company_name if log.prospect else '—' }}</td>
+                <td style="font-size:0.8rem;">{{ log.email_to }}</td>
+                <td>
+                    <span class="badge {% if log.status == 'replied' %}bg-success{% elif log.status == 'opened' %}bg-info{% elif log.status == 'bounced' %}bg-danger{% else %}bg-secondary{% endif %}" style="font-size:0.65rem;">
+                        {{ log.status }}
+                    </span>
+                </td>
+                <td style="font-size:0.75rem; color:#94a3b8;">{{ log.sent_at.strftime('%d/%m/%Y %H:%M') if log.sent_at else '—' }}</td>
+                <td>
+                    {% if log.status != 'replied' %}
+                    <form action="{{ url_for('mailing.mark_replied', id=log.id) }}" method="POST">
+                        <button type="submit" class="btn btn-xs btn-outline-success" style="font-size:0.7rem; padding:2px 8px;">
+                            A répondu ✓
+                        </button>
+                    </form>
+                    {% endif %}
+                    {% if log.prospect and log.status == 'replied' %}
+                    <a href="{{ url_for('pipeline.create_opportunity', prospect_id=log.prospect.id) }}" class="btn btn-xs btn-success" style="font-size:0.7rem; padding:2px 8px;">
+                        + Opportunité
+                    </a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4" style="color:#94a3b8;">Aucun envoi enregistré</div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Send Modal -->
+<div class="modal fade" id="sendModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Envoyer la campagne</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <form action="{{ url_for('mailing.send_campaign', id=campaign.id) }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-600" style="font-size:0.875rem;">Destinataires</label>
+                        <select name="target" class="form-select" onchange="document.getElementById('sectorGroup').style.display = this.value === 'sector' ? 'block' : 'none'">
+                            <option value="all">Tous les prospects avec email</option>
+                            <option value="sector">Par secteur</option>
+                            <option value="new">Prospects non contactés seulement</option>
+                        </select>
+                    </div>
+                    <div id="sectorGroup" style="display:none;" class="mb-3">
+                        <label class="form-label" style="font-size:0.875rem;">Secteur</label>
+                        <input type="text" name="sector" class="form-control" placeholder="ex: BTP, Informatique...">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" style="font-size:0.875rem;">
+                            <i class="fas fa-ban me-1 text-danger"></i>Emails à exclure
+                        </label>
+                        <textarea name="exclude_emails" class="form-control" rows="3"
+                            placeholder="ex: client@exemple.com, autre@test.com&#10;(un email par ligne ou séparés par virgule)"></textarea>
+                        <div class="form-text">Ces adresses seront ignorées même si elles font partie des destinataires.</div>
+                    </div>
+                    <div class="alert alert-warning" style="font-size:0.8rem;">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        Cette action enverra des emails réels. Vérifiez votre configuration SMTP dans .env
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane me-1"></i>Envoyer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

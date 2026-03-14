@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Maintenance CRM{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Maintenance CRM</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h1>🔧 Maintenance CRM</h1>
+        <p>Gestion des contrats de maintenance préventive et curative</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('maintenance.export_xlsx') }}" class="btn btn-outline-success btn-sm">
+            <i class="fas fa-file-excel me-1"></i>Export Excel
+        </a>
+        <a href="{{ url_for('maintenance.new') }}" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus me-1"></i>Nouvelle opportunité
+        </a>
+    </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card stat-card-teal">
+            <div class="stat-value">{{ total }}</div>
+            <div class="stat-label">Total opportunités</div>
+            <i class="fas fa-tools stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card stat-card-green">
+            <div class="stat-value">{{ active }}</div>
+            <div class="stat-label">Contrats actifs</div>
+            <i class="fas fa-check-circle stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card stat-card-blue">
+            <div class="stat-value">{{ won }}</div>
+            <div class="stat-label">Contrats signés</div>
+            <i class="fas fa-handshake stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card stat-card-purple">
+            <div class="stat-value">{{ "%.0f"|format(mrr) }}</div>
+            <div class="stat-label">Valeur totale TND</div>
+            <i class="fas fa-coins stat-icon"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Type legend -->
+<div class="d-flex gap-3 mb-3 flex-wrap" style="font-size:0.8rem;">
+    <span class="badge" style="background:#dbeafe; color:#1e40af; font-size:0.75rem; padding:5px 10px;">🔵 Préventive — Visites planifiées</span>
+    <span class="badge" style="background:#fee2e2; color:#991b1b; font-size:0.75rem; padding:5px 10px;">🔴 Curative — Dépannage à la demande</span>
+    <span class="badge" style="background:#d1fae5; color:#065f46; font-size:0.75rem; padding:5px 10px;">🟢 Les deux</span>
+</div>
+
+<!-- Search -->
+<div class="mb-3">
+    <input type="text" id="mntSearch" class="form-control form-control-sm" style="max-width:300px;"
+           placeholder="🔍 Rechercher..." oninput="filterKanban(this.value)">
+</div>
+
+<!-- KANBAN -->
+<div class="kanban-board">
+{% for stage, data in pipeline.items() %}
+<div class="kanban-col" style="min-width:230px; max-width:230px; border-radius:10px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.08);">
+    <div class="kanban-col-header d-flex justify-content-between"
+         style="background:{{ data.info.color }}20; color:{{ data.info.color }}; border-bottom:2px solid {{ data.info.color }}; padding:.6rem .875rem; font-weight:700; font-size:.8rem;">
+        <span>{{ data.info.icon }} {{ data.info.label }}</span>
+        <span class="badge bg-white" style="color:{{ data.info.color }}; font-size:.65rem;">{{ data.opps|length }}</span>
+    </div>
+    <div class="kanban-body" style="background:#f8fafc; min-height:80px; padding:.5rem;">
+        {% for opp in data.opps %}
+        <div class="kanban-card mnt-card" style="background:#fff; border-radius:8px; padding:.7rem; margin-bottom:.4rem; box-shadow:0 1px 3px rgba(0,0,0,.07); cursor:pointer;">
+            <!-- Type badge -->
+            <div class="mb-1">
+                {% if opp.maint_type == 'preventive' %}
+                <span style="font-size:.6rem; background:#dbeafe; color:#1e40af; border-radius:10px; padding:2px 7px; font-weight:700;">PRÉVENTIVE</span>
+                {% elif opp.maint_type == 'curative' %}
+                <span style="font-size:.6rem; background:#fee2e2; color:#991b1b; border-radius:10px; padding:2px 7px; font-weight:700;">CURATIVE</span>
+                {% else %}
+                <span style="font-size:.6rem; background:#d1fae5; color:#065f46; border-radius:10px; padding:2px 7px; font-weight:700;">MIXTE</span>
+                {% endif %}
+            </div>
+            <!-- Title + actions -->
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="fw-bold" style="font-size:.8rem; color:#1f2937; cursor:pointer;"
+                     onclick="window.location='{{ url_for('maintenance.view', id=opp.id) }}'">
+                    {{ opp.title[:35] }}{% if opp.title|length > 35 %}...{% endif %}
+                </div>
+                <div class="dropdown ms-1">
+                    <button class="btn btn-sm p-0 px-1" style="font-size:.65rem; background:none; border:none;"
+                            data-bs-toggle="dropdown">⋮</button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow" style="font-size:.8rem; min-width:150px;">
+                        <li><a class="dropdown-item" href="{{ url_for('maintenance.view', id=opp.id) }}"><i class="fas fa-eye me-2 text-primary"></i>Voir</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('maintenance.edit', id=opp.id) }}"><i class="fas fa-edit me-2 text-warning"></i>Modifier</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form action="{{ url_for('maintenance.delete', id=opp.id) }}" method="POST"
+                                  onsubmit="return confirm('Supprimer ?')">
+                                <button type="submit" class="dropdown-item text-danger"><i class="fas fa-trash me-2"></i>Supprimer</button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <!-- Park + client -->
+            <div style="font-size:.7rem; color:#64748b; margin:.3rem 0;">
+                {{ park_types.get(opp.park_type, opp.park_type or '') | truncate(30, true) }}<br>
+                {% if opp.prospect %}<strong>{{ opp.prospect.company_name }}</strong>{% endif %}
+            </div>
+            <!-- Value -->
+            {% if opp.value %}
+            <div style="font-size:.75rem; font-weight:700; color:#0891b2;">
+                {{ "%.0f"|format(opp.value) }} {{ opp.currency }}/an
+            </div>
+            {% endif %}
+            <!-- Quick stage -->
+            <div class="mt-2 pt-1 border-top">
+                <form action="{{ url_for('maintenance.update_stage', id=opp.id) }}" method="POST"
+                      class="d-flex gap-1">
+                    <select name="stage" class="form-select form-select-sm" style="font-size:.65rem; padding:2px 4px;">
+                        {% for s, info in pipeline.items() %}
+                        <option value="{{ s }}" {% if s == opp.stage %}selected{% endif %}>{{ info.info.label }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-primary flex-shrink-0" style="font-size:.65rem; padding:2px 7px;">✓</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+        {% if not data.opps %}
+        <div class="text-center py-3" style="color:#94a3b8; font-size:.72rem;">Aucune</div>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterKanban(q) {
+    q = q.toLowerCase();
+    document.querySelectorAll('.mnt-card').forEach(card => {
+        card.style.display = !q || card.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+}
+</script>
+{% endblock %}

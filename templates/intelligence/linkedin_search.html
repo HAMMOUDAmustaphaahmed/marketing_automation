@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+{% block title %}LinkedIn Intelligence{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item active">LinkedIn Intelligence</li>
+{% endblock %}
+
+{% block head %}
+<style>
+:root{--li-blue:#0a66c2;--li-dark:#004182;--success:#059669;--warn:#d97706;--danger:#dc2626;--purple:#7c3aed;--radius:14px;}
+
+.search-hero{background:linear-gradient(135deg,var(--li-dark) 0%,var(--li-blue) 60%,#1d4ed8 100%);border-radius:var(--radius);padding:2.5rem 2rem 2rem;position:relative;overflow:hidden;margin-bottom:1.5rem;}
+.search-hero::before{content:"";position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E");pointer-events:none;}
+
+.s-input-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:0;background:white;border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.25);}
+.s-input-row input{border:none;border-right:1px solid #e2e8f0;padding:.875rem 1rem;font-size:.9rem;outline:none;}
+.s-input-row input:focus{background:#f0f7ff;}
+.s-input-row input::placeholder{color:#b0bec5;}
+.s-btn{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#1a1a1a;border:none;padding:0 1.75rem;font-weight:800;font-size:.95rem;cursor:pointer;white-space:nowrap;transition:opacity .15s;}
+.s-btn:hover{opacity:.9;} .s-btn:disabled{opacity:.55;cursor:not-allowed;}
+
+/* Progress */
+.prog-box{display:none;background:white;border-radius:var(--radius);padding:2rem;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.07);margin-bottom:1.5rem;}
+.spinner{width:48px;height:48px;border:4px solid #e2e8f0;border-top-color:var(--li-blue);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 1rem;}
+.step-row{display:flex;justify-content:center;position:relative;max-width:560px;margin:1.5rem auto 0;}
+.step-row::before{content:"";position:absolute;top:17px;left:8%;right:8%;height:2px;background:#e2e8f0;z-index:0;}
+.bar-fill{position:absolute;top:17px;left:8%;height:2px;background:linear-gradient(90deg,var(--li-blue),var(--success));transition:width 1.2s ease;width:0%;z-index:1;}
+.step{display:flex;flex-direction:column;align-items:center;flex:1;position:relative;z-index:2;}
+.step-dot{width:34px;height:34px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:.75rem;color:#94a3b8;border:3px solid white;box-shadow:0 0 0 2px #e2e8f0;transition:all .4s;}
+.step.active .step-dot{background:var(--li-blue);color:white;box-shadow:0 0 0 4px rgba(10,102,194,.2);animation:pulse 1s infinite;}
+.step.done   .step-dot{background:var(--success);color:white;box-shadow:0 0 0 2px #d1fae5;animation:none;}
+.step-lbl{font-size:.68rem;color:#94a3b8;margin-top:.35rem;text-align:center;}
+.step.active .step-lbl{color:var(--li-blue);font-weight:700;}
+.step.done   .step-lbl{color:var(--success);font-weight:700;}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 4px rgba(10,102,194,.2)}50%{box-shadow:0 0 0 8px rgba(10,102,194,.08)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+
+.err-box{display:none;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.25rem;font-size:.875rem;}
+
+.co-hero{background:linear-gradient(135deg,#0f172a,#1e293b);border-radius:var(--radius);padding:1.75rem 2rem;margin-bottom:1.25rem;animation:fadeUp .4s ease;}
+.chip{background:rgba(255,255,255,.08);border-radius:10px;padding:.75rem .875rem;text-align:center;min-width:90px;}
+.chip-val{color:white;font-size:.95rem;font-weight:800;}
+.chip-lbl{color:#94a3b8;font-size:.67rem;margin-top:2px;text-transform:uppercase;}
+
+.i-card{border:none;border-radius:var(--radius);box-shadow:0 2px 12px rgba(0,0,0,.06);overflow:hidden;animation:fadeUp .45s ease;margin-bottom:1rem;}
+.i-card .ch{background:white;border-bottom:1px solid #f1f5f9;padding:.875rem 1.25rem;font-weight:700;font-size:.875rem;display:flex;justify-content:space-between;align-items:center;}
+
+.swot-grid{display:grid;grid-template-columns:1fr 1fr;}
+.swot-cell{padding:.875rem 1rem;border-right:1px solid #f1f5f9;border-bottom:1px solid #f1f5f9;}
+.swot-cell:nth-child(even){border-right:none;}
+.swot-cell:nth-child(3),.swot-cell:nth-child(4){border-bottom:none;}
+.swot-title{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;}
+.swot-cell ul{margin:0;padding-left:.9rem;font-size:.775rem;color:#374151;}
+.swot-cell li{margin-bottom:2px;}
+
+.c-row{padding:.875rem 1.25rem;border-bottom:1px solid #f8fafc;cursor:pointer;transition:background .12s;}
+.c-row:hover{background:#f8fafc;} .c-row:last-child{border-bottom:none;}
+.c-row.selected{background:#eff6ff;border-left:3px solid var(--li-blue);}
+.av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.875rem;color:white;flex-shrink:0;}
+.snbadge{display:inline-block;font-size:.62rem;font-weight:700;padding:1px 6px;border-radius:5px;text-transform:uppercase;}
+.tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.72rem;margin:2px;font-weight:500;}
+.f-pill{border:1px solid #e2e8f0;border-radius:20px;padding:3px 11px;font-size:.72rem;font-weight:600;background:white;cursor:pointer;transition:all .15s;color:#64748b;}
+.f-pill.active,.f-pill:hover{background:var(--li-blue);color:white;border-color:var(--li-blue);}
+.il{font-size:.67rem;color:#94a3b8;text-transform:uppercase;font-weight:700;letter-spacing:.4px;margin-bottom:3px;}
+.iv{font-size:.825rem;color:#1e293b;}
+.desc-box{background:#f8fafc;border-radius:10px;padding:.875rem 1rem;font-size:.825rem;color:#374151;line-height:1.6;}
+
+@media(max-width:640px){.s-input-row{grid-template-columns:1fr;}.s-btn{width:100%;padding:.875rem;}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header mb-3">
+    <h1 style="display:flex;align-items:center;gap:.5rem;">
+        <i class="fab fa-linkedin" style="color:var(--li-blue);"></i> LinkedIn Intelligence
+    </h1>
+    <p style="color:#64748b;font-size:.875rem;">Renseignez une société — l'IA analyse tout : description, SWOT, produits, concurrents et contacts</p>
+</div>
+
+<!-- SEARCH -->
+<div class="search-hero">
+    <div style="color:white;font-size:1.3rem;font-weight:800;margin-bottom:.3rem;"><i class="fas fa-search me-2"></i>Analyser une entreprise</div>
+    <div style="color:rgba(255,255,255,.6);font-size:.825rem;margin-bottom:1.4rem;">Nom + pays/ville suffisent — plus de précision = meilleurs résultats</div>
+    <div class="s-input-row">
+        <input id="iName"    type="text" placeholder="🏢 Nom de la société *" autocomplete="off">
+        <input id="iCountry" type="text" placeholder="🌍 Pays (ex: Tunisie)">
+        <input id="iCity"    type="text" placeholder="📍 Ville / Région">
+        <button class="s-btn" id="btnSearch"><i class="fas fa-search me-1"></i> Analyser</button>
+    </div>
+    <div style="margin-top:.875rem;display:flex;gap:1.5rem;flex-wrap:wrap;">
+        <span style="font-size:.74rem;color:rgba(255,255,255,.5);"><i class="fas fa-bolt me-1" style="color:#fbbf24;"></i>Groq AI · LLaMA 3.3 70B</span>
+        <span style="font-size:.74rem;color:rgba(255,255,255,.5);"><i class="fas fa-clock me-1"></i>5–15 secondes</span>
+        <span style="font-size:.74rem;color:rgba(255,255,255,.5);"><i class="fas fa-users me-1"></i>6–10 contacts détectés</span>
+    </div>
+</div>
+
+<!-- PROGRESS -->
+<div class="prog-box" id="progBox">
+    <div class="spinner"></div>
+    <div class="fw-bold" id="progTitle" style="font-size:1rem;color:#1e293b;">Analyse en cours...</div>
+    <div id="progSub" style="font-size:.825rem;color:#64748b;margin:.3rem 0 0;">Connexion à Groq AI</div>
+    <div class="step-row">
+        <div class="bar-fill" id="barFill"></div>
+        <div class="step" id="s0"><div class="step-dot"><i class="fas fa-plug" style="font-size:.7rem;"></i></div><div class="step-lbl">Connexion</div></div>
+        <div class="step" id="s1"><div class="step-dot"><i class="fas fa-brain" style="font-size:.7rem;"></i></div><div class="step-lbl">Analyse IA</div></div>
+        <div class="step" id="s2"><div class="step-dot"><i class="fas fa-building" style="font-size:.7rem;"></i></div><div class="step-lbl">Entreprise</div></div>
+        <div class="step" id="s3"><div class="step-dot"><i class="fas fa-users" style="font-size:.7rem;"></i></div><div class="step-lbl">Contacts</div></div>
+        <div class="step" id="s4"><div class="step-dot"><i class="fas fa-check" style="font-size:.7rem;"></i></div><div class="step-lbl">Terminé</div></div>
+    </div>
+</div>
+
+<!-- ERROR -->
+<div class="err-box" id="errBox">
+    <i class="fas fa-exclamation-circle me-2"></i><span id="errMsg"></span>
+    <details id="errDetails" style="display:none;margin-top:.5rem;">
+        <summary style="cursor:pointer;font-size:.75rem;">Détails techniques</summary>
+        <pre id="errRaw" style="font-size:.72rem;margin-top:.5rem;white-space:pre-wrap;background:#fff5f5;padding:.5rem;border-radius:6px;"></pre>
+    </details>
+</div>
+
+<!-- RESULTS -->
+<div id="resSection" style="display:none;">
+
+    <!-- Company hero -->
+    <div class="co-hero">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;margin-bottom:1.25rem;">
+            <div style="display:flex;align-items:center;gap:.875rem;">
+                <div id="cAv" style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--li-blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:900;color:white;flex-shrink:0;">A</div>
+                <div>
+                    <h2 id="cName" style="color:white;margin:0;font-size:1.3rem;font-weight:800;"></h2>
+                    <div id="cMeta" style="color:#94a3b8;font-size:.82rem;margin-top:3px;"></div>
+                </div>
+            </div>
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+                <a id="cLI"  href="#" target="_blank" class="btn btn-sm" style="background:var(--li-blue);color:white;border:none;border-radius:8px;display:none;font-size:.8rem;"><i class="fab fa-linkedin me-1"></i>LinkedIn</a>
+                <a id="cWS"  href="#" target="_blank" class="btn btn-sm" style="background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);border-radius:8px;display:none;font-size:.8rem;"><i class="fas fa-globe me-1"></i>Site web</a>
+                <button id="btnSave" onclick="saveAs()" class="btn btn-sm btn-success" style="border-radius:8px;font-size:.8rem;"><i class="fas fa-plus me-1"></i>Ajouter aux prospects</button>
+                <button onclick="resetSearch()" class="btn btn-sm" style="background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);border-radius:8px;font-size:.8rem;"><i class="fas fa-redo me-1"></i>Nouvelle recherche</button>
+            </div>
+        </div>
+        <div style="display:flex;gap:.625rem;flex-wrap:wrap;" id="chips"></div>
+    </div>
+
+    <!-- Content -->
+    <div class="row g-3">
+        <div class="col-lg-5">
+            <!-- Description & Info -->
+            <div class="i-card card">
+                <div class="ch">📋 Description & Informations</div>
+                <div class="card-body">
+                    <p id="cDesc" class="desc-box mb-3"></p>
+                    <div class="row g-2" id="cInfo"></div>
+                </div>
+            </div>
+            <!-- SWOT -->
+            <div class="i-card card">
+                <div class="ch">🎯 Analyse SWOT</div>
+                <div class="swot-grid" id="cSwot"></div>
+            </div>
+            <!-- Products -->
+            <div class="i-card card">
+                <div class="ch">📦 Produits, Services & Marchés</div>
+                <div class="card-body" id="cProds"></div>
+            </div>
+            <!-- Score -->
+            <div class="i-card card" style="border-left:3px solid var(--success);">
+                <div class="card-body" style="background:linear-gradient(135deg,#f0fdf4,#d1fae5);">
+                    <div class="fw-bold mb-2" style="font-size:.72rem;color:var(--success);text-transform:uppercase;letter-spacing:.5px;"><i class="fas fa-lightbulb me-1"></i>Opportunité commerciale</div>
+                    <p id="cWhy" style="font-size:.825rem;color:#14532d;margin-bottom:.75rem;"></p>
+                    <div style="display:flex;align-items:center;gap:.75rem;">
+                        <div style="flex:1;height:8px;background:#d1fae5;border-radius:10px;overflow:hidden;">
+                            <div id="cBar" style="height:100%;border-radius:10px;transition:width .8s ease;width:0%;"></div>
+                        </div>
+                        <span id="cScore" class="fw-bold" style="font-size:.95rem;min-width:48px;text-align:right;"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contacts -->
+        <div class="col-lg-7">
+            <div class="i-card card" style="display:flex;flex-direction:column;height:100%;">
+                <div class="ch">
+                    <span><i class="fas fa-users me-1" style="color:var(--li-blue);"></i>Contacts détectés <span id="cBadge" style="background:#eff6ff;color:var(--li-blue);border-radius:6px;padding:1px 7px;font-size:.7rem;font-weight:700;margin-left:5px;"></span></span>
+                    <div style="display:flex;gap:.3rem;">
+                        <button class="f-pill active" data-f="all">Tous</button>
+                        <button class="f-pill" data-f="dm">Décideurs ⭐</button>
+                    </div>
+                </div>
+                <div id="cList" style="flex:1;overflow-y:auto;max-height:580px;"></div>
+                <div style="padding:.625rem 1rem;background:#f8fafc;border-top:1px solid #f1f5f9;font-size:.74rem;color:#94a3b8;">
+                    <i class="fas fa-hand-pointer me-1"></i>Cliquez pour sélectionner · Le contact sélectionné sera ajouté avec la société
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let data=null, selIdx=null, contacts=[];
+
+const $=id=>document.getElementById(id);
+const msgs=['Connexion à Groq AI...','Envoi de la requête...','L\'IA analyse la société...','Recherche des contacts...','Finalisation des données...'];
+const GRAD=['#1a56db,#7c3aed','#059669,#0891b2','#dc2626,#d97706','#7c3aed,#db2777','#0891b2,#059669','#d97706,#dc2626'];
+const SC={'C-Level':{bg:'#fef2f2',c:'#dc2626'},'Manager':{bg:'#fffbeb',c:'#d97706'},'Senior':{bg:'#eff6ff',c:'#1a56db'},'Junior':{bg:'#f8fafc',c:'#64748b'}};
+
+function grad(s){let h=0;for(let i=0;i<(s||'').length;i++)h=(h+s.charCodeAt(i))%GRAD.length;return GRAD[h];}
+function ini(s){return(s||'?').split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();}
+
+// Bind search
+$('btnSearch').addEventListener('click',doSearch);
+['iName','iCountry','iCity'].forEach(id=>$(id).addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();}));
+
+function doSearch(){
+    const name=$('iName').value.trim();
+    if(!name){
+        $('iName').style.outline='2px solid #dc2626';
+        $('iName').focus();
+        setTimeout(()=>{$('iName').style.outline='';},2000);
+        return;
+    }
+    $('resSection').style.display='none';
+    $('errBox').style.display='none';
+
+    // Show progress
+    const pb=$('progBox'); pb.style.display='block';
+    ['s0','s1','s2','s3','s4'].forEach(s=>{const el=$(s);el.className='step';el.querySelector('.step-dot').innerHTML=el.querySelector('.step-dot').innerHTML.replace(/✓/,'');});
+    stepA('s0'); setBar(10);
+    $('progSub').textContent=msgs[0];
+    let mi=0;
+    const iv=setInterval(()=>{if(++mi<msgs.length)$('progSub').textContent=msgs[mi];},2000);
+
+    $('btnSearch').disabled=true;
+    $('btnSearch').innerHTML='<i class="fas fa-spinner fa-spin me-1"></i> Analyse...';
+
+    fetch('{{ url_for("intelligence.linkedin_enrich") }}',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({company_name:name,country:$('iCountry').value.trim(),address:$('iCity').value.trim()})
+    })
+    .then(r=>{clearInterval(iv);stepD('s0');stepA('s1');setBar(35);return r.json();})
+    .then(resp=>{
+        stepD('s1');stepA('s2');setBar(65);
+        $('progSub').textContent='Construction des résultats...';
+        if(!resp.success||resp.error){
+            hideProg();
+            showErr(resp.error||'Erreur inconnue',resp.raw);
+            return;
+        }
+        data=resp.data; contacts=data.contacts||[];
+        setTimeout(()=>{
+            stepD('s2');stepA('s3');setBar(85);
+            setTimeout(()=>{stepD('s3');stepA('s4');setBar(100);
+                setTimeout(()=>{hideProg();render(data);},500);
+            },300);
+        },400);
+    })
+    .catch(e=>{clearInterval(iv);hideProg();showErr('Erreur réseau: '+e.message);});
+}
+
+function stepA(id){$(id).className='step active';}
+function stepD(id){const e=$(id);e.className='step done';e.querySelector('.step-dot').innerHTML='<i class="fas fa-check" style="font-size:.7rem;"></i>';}
+function setBar(p){$('barFill').style.width=(p*0.84)+'%';}
+function hideProg(){$('progBox').style.display='none';$('btnSearch').disabled=false;$('btnSearch').innerHTML='<i class="fas fa-search me-1"></i> Analyser';}
+function showErr(msg,raw){$('errMsg').innerHTML=msg;if(raw){$('errDetails').style.display='';$('errRaw').textContent=raw;}$('errBox').style.display='block';}
+function resetSearch(){$('resSection').style.display='none';$('errBox').style.display='none';$('iName').value=$('iCountry').value=$('iCity').value='';$('iName').focus();data=null;selIdx=null;contacts=[];}
+
+function render(d){
+    const c=d.company||{};
+    $('cAv').textContent=(c.name||'?')[0].toUpperCase();
+    $('cName').textContent=c.name||'—';
+    $('cMeta').textContent=[c.sector,c.sub_sector,c.city,c.country].filter(Boolean).join(' · ');
+
+    if(c.linkedin_url){const b=$('cLI');b.href=c.linkedin_url;b.style.display='';}
+    if(c.website){const b=$('cWS');b.href=c.website;b.style.display='';}
+
+    // Chips
+    const cm=[{i:'fa-calendar',l:'Fondée',v:c.founded_year},{i:'fa-users',l:'Effectif',v:c.employees_count},{i:'fa-coins',l:'CA estimé',v:c.revenue_estimate}].filter(x=>x.v);
+    const chColors=['#60a5fa','#34d399','#fbbf24'];
+    $('chips').innerHTML=cm.map((m,i)=>`<div class="chip"><div class="chip-val"><i class="fas ${m.i}" style="color:${chColors[i]};font-size:.82rem;margin-right:4px;"></i>${m.v}</div><div class="chip-lbl">${m.l}</div></div>`).join('');
+
+    // Description
+    $('cDesc').textContent=c.description||'Non disponible.';
+
+    // Info grid
+    const inf=[['Pays',c.country],['Ville',c.city],['Adresse',c.address],['Technologies',c.technologies],['Certifications',c.certifications],['Marchés',(c.markets||[]).join(', ')],['Concurrents',(c.competitors||[]).slice(0,3).join(', ')]].filter(([,v])=>v);
+    $('cInfo').innerHTML=inf.map(([l,v])=>`<div class="col-6"><div class="il">${l}</div><div class="iv">${v}</div></div>`).join('')||'<div class="col-12 text-muted" style="font-size:.8rem;">—</div>';
+
+    // SWOT
+    const sw=c.swot||{};
+    const swD=[{k:'strengths',l:'💪 Forces',c:'#059669',bg:'#f0fdf4'},{k:'weaknesses',l:'⚠️ Faiblesses',c:'#d97706',bg:'#fffbeb'},{k:'opportunities',l:'🚀 Opportunités',c:'#1a56db',bg:'#eff6ff'},{k:'threats',l:'🔴 Menaces',c:'#dc2626',bg:'#fef2f2'}];
+    $('cSwot').innerHTML=swD.map(s=>{const its=(sw[s.k]||[]).slice(0,4);return`<div class="swot-cell" style="background:${s.bg};"><div class="swot-title" style="color:${s.c};">${s.l}</div>${its.length?`<ul>${its.map(i=>`<li>${i}</li>`).join('')}</ul>`:'<div style="font-size:.74rem;color:#94a3b8;">—</div>'}</div>`;}).join('');
+
+    // Products
+    const pr=(c.key_products||[]).map(p=>`<span class="tag" style="background:#eff6ff;color:#1a56db;">${p}</span>`).join('');
+    const sv=(c.key_services||[]).map(s=>`<span class="tag" style="background:#f0fdf4;color:#059669;">${s}</span>`).join('');
+    const mk=(c.markets||[]).map(m=>`<span class="tag" style="background:#fdf4ff;color:#7c3aed;">${m}</span>`).join('');
+    $('cProds').innerHTML=[pr&&`<div class="mb-2"><div class="il mb-1">Produits</div>${pr}</div>`,sv&&`<div class="mb-2"><div class="il mb-1">Services</div>${sv}</div>`,mk&&`<div><div class="il mb-1">Marchés</div>${mk}</div>`].filter(Boolean).join('')||'<span class="text-muted" style="font-size:.8rem;">Non disponible</span>';
+
+    // Score
+    const sc=c.relevance_score||0;
+    $('cWhy').textContent=c.why_prospect||'—';
+    $('cBar').style.width=sc+'%';
+    $('cBar').style.background=sc>=70?'#059669':sc>=40?'#1a56db':'#94a3b8';
+    $('cScore').textContent=sc+'/100';
+    $('cScore').style.color=sc>=70?'#059669':sc>=40?'#1a56db':'#94a3b8';
+
+    renderContacts('all');
+
+    // Filter pills
+    document.querySelectorAll('.f-pill').forEach(b=>b.addEventListener('click',function(){document.querySelectorAll('.f-pill').forEach(x=>x.classList.remove('active'));this.classList.add('active');renderContacts(this.dataset.f);}));
+
+    $('resSection').style.display='';
+    $('resSection').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function renderContacts(filter){
+    const fl=filter==='dm'?contacts.filter(c=>c.decision_maker===true||c.decision_maker==='true'):contacts;
+    $('cBadge').textContent=fl.length+(filter==='dm'?' décideur(s)':' contact(s)');
+    if(!fl.length){$('cList').innerHTML=`<div style="padding:3rem;text-align:center;color:#94a3b8;font-size:.825rem;"><i class="fas fa-user-slash fa-2x d-block mb-2 opacity-25"></i>Aucun contact ${filter==='dm'?'décideur ':''} trouvé</div>`;return;}
+    $('cList').innerHTML=fl.map((c)=>{
+        const oi=contacts.indexOf(c);
+        const sc2=SC[c.seniority]||{bg:'#f8fafc',c:'#64748b'};
+        return`<div class="c-row ${oi===selIdx?'selected':''}" onclick="selC(${oi})" data-i="${oi}">
+            <div style="display:flex;align-items:flex-start;gap:.75rem;">
+                <div class="av" style="background:linear-gradient(135deg,${grad(c.name)});">${ini(c.name)}</div>
+                <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:3px;">
+                        <span class="fw-bold" style="font-size:.875rem;">${c.name||'—'}</span>
+                        ${c.decision_maker?`<span style="background:#fef3c7;color:#d97706;border-radius:5px;padding:1px 6px;font-size:.62rem;font-weight:700;">⭐ DÉCIDEUR</span>`:''}
+                        ${c.seniority?`<span class="snbadge" style="background:${sc2.bg};color:${sc2.c};">${c.seniority}</span>`:''}
+                    </div>
+                    <div style="font-size:.8rem;color:#64748b;margin-bottom:.35rem;">${c.title||''}${c.department?' · '+c.department:''}</div>
+                    <div style="display:flex;gap:.875rem;flex-wrap:wrap;">
+                        ${c.linkedin_url?`<a href="${c.linkedin_url}" target="_blank" onclick="event.stopPropagation()" style="font-size:.75rem;color:var(--li-blue);text-decoration:none;"><i class="fab fa-linkedin me-1"></i>LinkedIn</a>`:''}
+                        ${c.email_guess?`<span style="font-size:.75rem;color:#64748b;"><i class="fas fa-envelope me-1"></i>${c.email_guess}</span>`:''}
+                    </div>
+                </div>
+                <button class="btn btn-sm" onclick="event.stopPropagation();saveContactOnly(${oi})" style="font-size:.68rem;padding:3px 9px;background:#05996915;color:#059669;border:1px solid #05996930;border-radius:7px;flex-shrink:0;"><i class="fas fa-plus me-1"></i>Prospect</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function selC(idx){selIdx=idx;document.querySelectorAll('.c-row').forEach(e=>e.classList.toggle('selected',parseInt(e.dataset.i)===idx));}
+
+function saveAs(){if(!data)return;doSave(data.company||{},selIdx!==null?(contacts[selIdx]||{}):{});}
+function saveContactOnly(idx){if(!data)return;doSave(data.company||{},contacts[idx]||{});}
+function doSave(company,contact){
+    const btn=$('btnSave'); btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin me-1"></i>Enregistrement...';
+    fetch('{{ url_for("intelligence.linkedin_save") }}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({company,contact})})
+    .then(r=>r.json())
+    .then(d=>{
+        btn.disabled=false;
+        if(d.success){btn.innerHTML='<i class="fas fa-check me-1"></i>Ajouté !';btn.style.background='#059669';setTimeout(()=>{window.location.href='/prospects/'+d.prospect_id+'/view';},1100);}
+        else if(d.existing_id){btn.innerHTML='<i class="fas fa-plus me-1"></i>Ajouter aux prospects';showErr(`Prospect déjà existant. <a href="/prospects/${d.existing_id}/view" class="fw-bold">Voir la fiche →</a>`);}
+        else{btn.innerHTML='<i class="fas fa-plus me-1"></i>Ajouter aux prospects';showErr(d.error||'Erreur inconnue');}
+    })
+    .catch(e=>{btn.disabled=false;btn.innerHTML='<i class="fas fa-plus me-1"></i>Ajouter aux prospects';showErr('Erreur réseau: '+e.message);});
+}
+</script>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Modifier le contrat de maintenance{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('pipeline.maintenance_list') }}">Maintenance</a></li>
+<li class="breadcrumb-item active">Modifier</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Modifier le contrat</h1>
+    <p>{{ mc.contract_number }}</p>
+</div>
+
+<div class="row justify-content-center">
+<div class="col-lg-6">
+<div class="card">
+    <div class="card-header"><h6 class="mb-0 fw-bold">🔧 Informations du contrat</h6></div>
+    <div class="card-body">
+        <form action="{{ url_for('pipeline.edit_maintenance', id=mc.id) }}" method="POST">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Numéro de contrat</label>
+                <input type="text" name="contract_number" class="form-control" value="{{ mc.contract_number }}" required>
+            </div>
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Date de début</label>
+                    <input type="date" name="start_date" class="form-control"
+                           value="{{ mc.start_date.strftime('%Y-%m-%d') if mc.start_date else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Date de fin</label>
+                    <input type="date" name="end_date" class="form-control"
+                           value="{{ mc.end_date.strftime('%Y-%m-%d') if mc.end_date else '' }}">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Valeur annuelle (TND)</label>
+                <input type="number" name="annual_value" class="form-control" step="0.01" min="0"
+                       value="{{ mc.annual_value or '' }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Statut</label>
+                <select name="status" class="form-select">
+                    <option value="active"    {% if mc.status == 'active'    %}selected{% endif %}>✅ Actif</option>
+                    <option value="expired"   {% if mc.status == 'expired'   %}selected{% endif %}>❌ Expiré</option>
+                    <option value="renewed"   {% if mc.status == 'renewed'   %}selected{% endif %}>🔄 Renouvelé</option>
+                    <option value="cancelled" {% if mc.status == 'cancelled' %}selected{% endif %}>🚫 Annulé</option>
+                </select>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i>Enregistrer
+                </button>
+                <a href="{{ url_for('pipeline.maintenance_list') }}" class="btn btn-light">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+{% block title %}Prospects{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Accueil</a></li>
+<li class="breadcrumb-item active">Prospects</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h1>Clients Potentiels</h1>
+        <p>Vos prospects B2B qualifiés par l'intelligence artificielle</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('prospects.add') }}" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-plus me-1"></i>Ajouter
+        </a>
+        <button class="btn btn-ai btn-sm" data-bs-toggle="modal" data-bs-target="#generateModal">
+            <i class="fas fa-magic me-1"></i>Générer avec IA
+        </button>
+        <a href="{{ url_for('prospects.export_xlsx') }}" class="btn btn-outline-success btn-sm">
+            <i class="fas fa-file-excel me-1"></i>Export Excel
+        </a>
+    </div>
+</div>
+
+<!-- FILTERS -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form class="d-flex gap-2 align-items-center flex-wrap" method="GET">
+            <div class="input-group input-group-sm" style="max-width:260px;">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" name="search" class="form-control" placeholder="Rechercher entreprise..." value="{{ search }}" id="liveSearch">
+            </div>
+            <select name="status" class="form-select form-select-sm" style="max-width:160px;">
+                <option value="">Tous les statuts</option>
+                {% for key, label in status_labels.items() %}
+                <option value="{{ key }}" {% if status_filter == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <select name="sector" class="form-select form-select-sm" style="max-width:180px;">
+                <option value="">Tous les secteurs</option>
+                {% for s in sectors %}
+                <option value="{{ s }}" {% if sector_filter == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm">Filtrer</button>
+            {% if search or status_filter or sector_filter %}
+            <a href="{{ url_for('prospects.index') }}" class="btn btn-outline-secondary btn-sm">Réinitialiser</a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- BULK ACTIONS BAR (hidden until selection) -->
+<div id="bulkBar" style="display:none;" class="alert py-2 mb-2 d-flex align-items-center gap-3"
+     style="background:#eff6ff;border:1px solid #bfdbfe;">
+    <span id="selCount" class="fw-bold text-primary" style="font-size:.875rem;">0 sélectionné(s)</span>
+    <form action="{{ url_for('prospects.bulk_delete') }}" method="POST" id="bulkForm"
+          onsubmit="return confirmBulk()">
+        <div id="bulkIds"></div>
+        <button type="submit" class="btn btn-sm btn-danger">
+            <i class="fas fa-trash me-1"></i>Supprimer la sélection
+        </button>
+    </form>
+    <button class="btn btn-sm btn-outline-secondary ms-auto" onclick="clearSelection()">Annuler</button>
+</div>
+
+<!-- TABLE -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold">
+            <i class="fas fa-users me-2 text-success"></i>{{ pagination.total }} Prospects
+        </h6>
+        <label class="d-flex align-items-center gap-2" style="font-size:.8rem;cursor:pointer;">
+            <input type="checkbox" id="checkAll" onchange="toggleAll(this)" style="width:16px;height:16px;">
+            Tout sélectionner
+        </label>
+    </div>
+    <div class="card-body p-0">
+        {% if prospects %}
+        <div class="table-responsive">
+        <table class="table table-hover mb-0" id="prospectsTable">
+            <thead>
+                <tr>
+                    <th style="width:36px;"></th>
+                    <th>Entreprise</th>
+                    <th>Secteur</th>
+                    <th>Contact</th>
+                    <th>Email</th>
+                    <th>Score</th>
+                    <th>Statut</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for p in prospects %}
+            <tr class="prospect-row" id="row-{{ p.id }}">
+                <td>
+                    <input type="checkbox" class="row-check form-check-input" data-id="{{ p.id }}"
+                           style="width:16px;height:16px;" onchange="updateSelection()">
+                </td>
+                <td>
+                    <div class="fw-bold" style="font-size:.875rem;">
+                        {{ p.company_name }}
+                        {% if p.opportunities %}
+                        <span title="{{ p.opportunities|length }} opportunité(s)" style="background:#eff6ff;color:#1a56db;border-radius:10px;padding:0 6px;font-size:.65rem;font-weight:700;margin-left:4px;">{{ p.opportunities|length }} opp.</span>
+                        {% endif %}
+                    </div>
+                    <div style="font-size:.75rem;color:#94a3b8;">{{ p.city }}{% if p.city and p.country %}, {% endif %}{{ p.country }}</div>
+                </td>
+                <td style="font-size:.8rem;">
+                    {{ p.sector or '—' }}
+                    {% if p.sub_sector %}<br><span style="color:#94a3b8;font-size:.7rem;">{{ p.sub_sector }}</span>{% endif %}
+                </td>
+                <td>
+                    <div style="font-size:.8rem;">{{ p.contact_name or '—' }}</div>
+                    <div style="font-size:.7rem;color:#94a3b8;">{{ p.contact_title or '' }}</div>
+                </td>
+                <td>
+                    {% if p.email %}
+                    <a href="mailto:{{ p.email }}" style="font-size:.8rem;color:#1a56db;">{{ p.email }}</a>
+                    {% else %}—{% endif %}
+                </td>
+                <td>
+                    {% if p.relevance_score %}
+                    <div class="d-flex align-items-center gap-1">
+                        <div class="score-bar" style="width:44px;">
+                            <div class="score-fill" style="width:{{ p.relevance_score }}%;background:{% if p.relevance_score >= 70 %}#059669{% elif p.relevance_score >= 40 %}#1a56db{% else %}#94a3b8{% endif %};"></div>
+                        </div>
+                        <span style="font-size:.75rem;font-weight:600;">{{ p.relevance_score }}</span>
+                    </div>
+                    {% else %}—{% endif %}
+                </td>
+                <td>
+                    <span class="badge-status status-{{ p.status }}">{{ status_labels.get(p.status, p.status) }}</span>
+                </td>
+                <td>
+                    <div class="d-flex gap-1 justify-content-center flex-wrap">
+                        <a href="{{ url_for('prospects.view', id=p.id) }}" class="btn btn-sm btn-light" title="Fiche &amp; historique"><i class="fas fa-eye"></i></a>
+                        <a href="{{ url_for('prospects.edit', id=p.id) }}" class="btn btn-sm btn-light" title="Modifier"><i class="fas fa-edit"></i></a>
+                        <a href="{{ url_for('prospects.pdf', id=p.id) }}" class="btn btn-sm btn-light" title="PDF"><i class="fas fa-file-pdf text-danger"></i></a>
+                        <a href="{{ url_for('pipeline.new_opportunity') }}?prospect_id={{ p.id }}" class="btn btn-sm btn-outline-success" title="Créer opportunité">
+                            <i class="fas fa-star"></i>
+                        </a>
+                        <form action="{{ url_for('prospects.delete', id=p.id) }}" method="POST" onsubmit="return confirm('Supprimer ?')">
+                            <button type="submit" class="btn btn-sm btn-light"><i class="fas fa-trash text-danger"></i></button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+
+        <!-- PAGINATION -->
+        {% if pagination.pages > 1 %}
+        <div class="d-flex justify-content-center py-3">
+            <nav><ul class="pagination pagination-sm mb-0">
+                {% if pagination.has_prev %}<li class="page-item"><a class="page-link" href="?page={{ pagination.prev_num }}&search={{ search }}&status={{ status_filter }}&sector={{ sector_filter }}">‹</a></li>{% endif %}
+                {% for page_num in pagination.iter_pages() %}
+                    {% if page_num %}<li class="page-item {% if page_num == pagination.page %}active{% endif %}"><a class="page-link" href="?page={{ page_num }}&search={{ search }}&status={{ status_filter }}&sector={{ sector_filter }}">{{ page_num }}</a></li>
+                    {% else %}<li class="page-item disabled"><span class="page-link">...</span></li>{% endif %}
+                {% endfor %}
+                {% if pagination.has_next %}<li class="page-item"><a class="page-link" href="?page={{ pagination.next_num }}&search={{ search }}&status={{ status_filter }}&sector={{ sector_filter }}">›</a></li>{% endif %}
+            </ul></nav>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-5" style="color:#94a3b8;">
+            <i class="fas fa-users fa-3x mb-3 d-block"></i>
+            <h5>Aucun prospect</h5>
+            <button class="btn btn-ai mt-2" data-bs-toggle="modal" data-bs-target="#generateModal">
+                <i class="fas fa-magic me-2"></i>Générer avec IA
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- GENERATE MODAL -->
+<div class="modal fade" id="generateModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content border-0 shadow">
+        <div class="modal-header" style="background:linear-gradient(135deg,#059669,#047857);color:white;">
+            <h5 class="modal-title"><i class="fas fa-magic me-2"></i>Générer des prospects avec IA</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <form action="{{ url_for('prospects.generate') }}" method="POST">
+            <div class="modal-body">
+                <p class="text-muted" style="font-size:.875rem;">L'IA va identifier des clients potentiels dans tous les secteurs susceptibles d'avoir besoin de votre produit.</p>
+                <div class="mb-3">
+                    <label class="form-label fw-bold" style="font-size:.875rem;">Nombre de prospects</label>
+                    <select name="count" class="form-select">
+                        <option value="10">10 prospects</option>
+                        <option value="20" selected>20 prospects</option>
+                        <option value="50">50 prospects</option>
+                        <option value="100">100 prospects</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                <button type="submit" class="btn text-white" style="background:#059669;">
+                    <i class="fas fa-magic me-1"></i>Générer maintenant
+                </button>
+            </div>
+        </form>
+    </div></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Live search filter
+document.getElementById('liveSearch').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.prospect-row').forEach(row => {
+        row.style.display = !q || row.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+});
+
+// Checkbox selection
+let selected = new Set();
+
+function toggleAll(cb) {
+    document.querySelectorAll('.row-check').forEach(c => {
+        c.checked = cb.checked;
+        if (cb.checked) selected.add(c.dataset.id);
+        else selected.delete(c.dataset.id);
+    });
+    updateBulkBar();
+}
+
+function updateSelection() {
+    selected.clear();
+    document.querySelectorAll('.row-check:checked').forEach(c => selected.add(c.dataset.id));
+    updateBulkBar();
+    document.getElementById('checkAll').checked =
+        document.querySelectorAll('.row-check').length === selected.size && selected.size > 0;
+}
+
+function updateBulkBar() {
+    const bar = document.getElementById('bulkBar');
+    bar.style.display = selected.size > 0 ? 'flex' : 'none';
+    document.getElementById('selCount').textContent = selected.size + ' sélectionné(s)';
+    const container = document.getElementById('bulkIds');
+    container.innerHTML = '';
+    selected.forEach(id => {
+        const inp = document.createElement('input');
+        inp.type = 'hidden'; inp.name = 'selected_ids[]'; inp.value = id;
+        container.appendChild(inp);
+    });
+}
+
+function clearSelection() {
+    selected.clear();
+    document.querySelectorAll('.row-check, #checkAll').forEach(c => c.checked = false);
+    updateBulkBar();
+}
+
+function confirmBulk() {
+    return confirm(`Supprimer ${selected.size} prospect(s) ? Cette action est irréversible.`);
+}
+</script>
+{% endblock %}

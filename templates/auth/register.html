@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Créer un compte — SMarketing</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: 'Segoe UI', system-ui, sans-serif; padding: 2rem 1rem; }
+        .card { border: none; border-radius: 20px; padding: 2rem; width: 100%; max-width: 580px; box-shadow: 0 25px 50px rgba(0,0,0,.3); }
+        .brand h1 { font-size: 1.75rem; font-weight: 800; color: #0f172a; }
+        .brand h1 span { color: #1a56db; }
+        .form-control, .form-select { border-radius: 10px; padding: 0.65rem 1rem; border: 1.5px solid #e2e8f0; font-size: 0.875rem; }
+        .form-control:focus, .form-select:focus { border-color: #1a56db; box-shadow: 0 0 0 3px rgba(26,86,219,.1); }
+        .btn-primary { background: #1a56db; border: none; border-radius: 10px; padding: 0.75rem; font-weight: 600; }
+        label { font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 5px; }
+        .section-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #94a3b8; margin: 1rem 0 0.5rem; }
+        .desc-hint { font-size: 0.75rem; color: #94a3b8; margin-top: 4px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="brand text-center mb-3">
+            <h1>S<span>Marketing</span></h1>
+            <p style="color:#64748b; font-size:0.875rem;">Créez votre espace en 2 minutes</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ 'danger' if category == 'error' else category }}" style="font-size:0.875rem;">{{ message }}</div>
+        {% endfor %}
+        {% endwith %}
+
+        <form method="POST">
+            <div class="section-label">Votre compte</div>
+            <div class="row g-2">
+                <div class="col-md-6">
+                    <label>Votre nom complet</label>
+                    <input type="text" name="name" class="form-control" placeholder="Ahmed Ben Ali" required>
+                </div>
+                <div class="col-md-6">
+                    <label>Email</label>
+                    <input type="email" name="email" class="form-control" placeholder="vous@exemple.com" required>
+                </div>
+                <div class="col-12">
+                    <label>Mot de passe</label>
+                    <input type="password" name="password" class="form-control" placeholder="Min. 8 caractères" required>
+                </div>
+            </div>
+
+            <div class="section-label">Votre entreprise</div>
+            <div class="row g-2">
+                <div class="col-md-8">
+                    <label>Nom de l'entreprise</label>
+                    <input type="text" name="company_name" class="form-control" placeholder="Ma Société SARL" required>
+                </div>
+                <div class="col-md-4">
+                    <label>Pays</label>
+                    <select name="country" class="form-select">
+                        <option value="Tunisie" selected>Tunisie</option>
+                        <option value="Maroc">Maroc</option>
+                        <option value="Algérie">Algérie</option>
+                        <option value="France">France</option>
+                        <option value="Autre">Autre</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label>Secteur d'activité</label>
+                    <input type="text" name="sector" class="form-control" placeholder="ex: Informatique, BTP, Agroalimentaire...">
+                </div>
+                <div class="col-12">
+                    <label>Description de vos produits/services <span class="text-primary">*</span></label>
+                    <textarea name="description" class="form-control" rows="4" required
+                        placeholder="Décrivez précisément vos produits ou services. Ex: Nous vendons des logiciels de gestion RH pour les PME tunisiennes..."></textarea>
+                    <p class="desc-hint">
+                        <i class="fas fa-magic me-1" style="color:#1a56db;"></i>
+                        L'IA va analyser cette description pour générer automatiquement vos 500 concurrents et prospects.
+                    </p>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 text-white mt-3" style="border-radius:10px; padding:0.75rem;">
+                <i class="fas fa-rocket me-2"></i>Créer mon espace et démarrer
+            </button>
+        </form>
+        <p class="text-center mt-3 mb-0" style="font-size:0.875rem; color:#64748b;">
+            Déjà un compte ? <a href="{{ url_for('auth.login') }}" class="text-primary text-decoration-none">Se connecter</a>
+        </p>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

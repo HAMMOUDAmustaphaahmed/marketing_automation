@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}{% if competitor %}Modifier{% else %}Ajouter{% endif %} un Concurrent{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('competitors.index') }}">Concurrents</a></li>
+<li class="breadcrumb-item active">{% if competitor %}Modifier{% else %}Ajouter{% endif %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{% if competitor %}Modifier{% else %}Ajouter{% endif %} un Concurrent</h1>
+</div>
+<div class="card" style="max-width:720px;">
+    <div class="card-body">
+        <form action="{% if competitor %}{{ url_for('competitors.edit', id=competitor.id) }}{% else %}{{ url_for('competitors.add') }}{% endif %}" method="POST">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label fw-600">Nom de l'entreprise *</label>
+                    <input type="text" name="name" class="form-control" value="{{ competitor.name if competitor else '' }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-600">Score similarité (%)</label>
+                    <input type="number" name="similarity_score" class="form-control" value="{{ competitor.similarity_score if competitor else 50 }}" min="0" max="100">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-600">Site Web</label>
+                    <input type="url" name="website" class="form-control" value="{{ competitor.website if competitor else '' }}" placeholder="https://...">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-600">Pays</label>
+                    <input type="text" name="country" class="form-control" value="{{ competitor.country if competitor else 'Tunisie' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-600">Ville</label>
+                    <input type="text" name="city" class="form-control" value="{{ competitor.city if competitor else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-600">Secteur d'activité</label>
+                    <input type="text" name="sector" class="form-control" value="{{ competitor.sector if competitor else '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-600">Employés</label>
+                    <input type="text" name="employees_count" class="form-control" value="{{ competitor.employees_count if competitor else '' }}" placeholder="10-50">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-600">Année fondation</label>
+                    <input type="number" name="founded_year" class="form-control" value="{{ competitor.founded_year if competitor else '' }}" placeholder="2010">
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-600">Activités principales</label>
+                    <textarea name="activities" class="form-control" rows="2">{{ competitor.activities if competitor else '' }}</textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-600">Produits</label>
+                    <textarea name="products" class="form-control" rows="2">{{ competitor.products if competitor else '' }}</textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-600">Services</label>
+                    <textarea name="services" class="form-control" rows="2">{{ competitor.services if competitor else '' }}</textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-600">LinkedIn</label>
+                    <input type="url" name="linkedin_url" class="form-control" value="{{ competitor.linkedin_url if competitor else '' }}" placeholder="https://linkedin.com/company/...">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-600">Facebook</label>
+                    <input type="url" name="facebook_url" class="form-control" value="{{ competitor.facebook_url if competitor else '' }}" placeholder="https://facebook.com/...">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-600">Note Google (/5)</label>
+                    <input type="number" name="google_rating" class="form-control" value="{{ competitor.google_rating if competitor else '' }}" step="0.1" min="0" max="5">
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label fw-600">CA estimé</label>
+                    <input type="text" name="revenue_estimate" class="form-control" value="{{ competitor.revenue_estimate if competitor else '' }}" placeholder="ex: 1M-5M TND">
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-600">Notes</label>
+                    <textarea name="notes" class="form-control" rows="2">{{ competitor.notes if competitor else '' }}</textarea>
+                </div>
+            </div>
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Enregistrer</button>
+                <a href="{{ url_for('competitors.index') }}" class="btn btn-outline-secondary">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

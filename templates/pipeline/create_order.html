@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% block title %}Bon de Commande{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('pipeline.index') }}">Pipeline</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('pipeline.view_opportunity', id=opp.id) }}">{{ opp.title[:25] }}</a></li>
+<li class="breadcrumb-item active">Bon de Commande</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>📋 Nouveau Bon de Commande</h1>
+    <p>{{ opp.prospect.company_name if opp.prospect else '' }} — {{ opp.title }}</p>
+</div>
+
+<div class="row justify-content-center"><div class="col-lg-8">
+
+<!-- MODE SELECTOR -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="mode-card active" id="card-ai" onclick="setMode('ai')"
+             style="border:2px solid #1a56db;border-radius:12px;padding:1.25rem;cursor:pointer;background:#eff6ff;transition:.2s;">
+            <div class="fw-bold mb-1" style="color:#1a56db;"><i class="fas fa-magic me-2"></i>Générer avec IA</div>
+            <div style="font-size:.78rem;color:#64748b;">Le BC est rédigé automatiquement à partir du devis et du profil client.</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="mode-card" id="card-manual" onclick="setMode('manual')"
+             style="border:2px solid #e2e8f0;border-radius:12px;padding:1.25rem;cursor:pointer;background:#fff;transition:.2s;">
+            <div class="fw-bold mb-1" style="color:#374151;"><i class="fas fa-keyboard me-2"></i>Saisie manuelle</div>
+            <div style="font-size:.78rem;color:#64748b;">Entrez manuellement le montant et les détails.</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="mode-card" id="card-upload" onclick="setMode('upload')"
+             style="border:2px solid #e2e8f0;border-radius:12px;padding:1.25rem;cursor:pointer;background:#fff;transition:.2s;">
+            <div class="fw-bold mb-1" style="color:#374151;"><i class="fas fa-upload me-2"></i>Upload fichier BC</div>
+            <div style="font-size:.78rem;color:#64748b;">Uploadez un BC reçu du client (PDF, Word, image).</div>
+        </div>
+    </div>
+</div>
+
+<form action="{{ url_for('pipeline.create_order', opp_id=opp.id) }}" method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="source" id="sourceInput" value="ai">
+
+    <!-- AI MODE -->
+    <div id="panel-ai" class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-bold">🤖 Génération IA du Bon de Commande</h6>
+            <button type="button" class="btn btn-ai btn-sm" onclick="generateBC()">
+                <i class="fas fa-magic me-1"></i>Générer
+            </button>
+        </div>
+        <div class="card-body">
+            <!-- Context -->
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold" style="font-size:.8rem;">Client</label>
+                    <input type="text" class="form-control form-control-sm" id="bc_client"
+                           value="{{ opp.prospect.company_name if opp.prospect else '' }}" readonly
+                           style="background:#f8fafc;">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold" style="font-size:.8rem;">Produit / Service</label>
+                    <input type="text" class="form-control form-control-sm" id="bc_product"
+                           value="{{ opp.product_service or opp.title }}">
+                </div>
+            </div>
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold" style="font-size:.8rem;">Montant (TND)</label>
+                    <input type="number" class="form-control form-control-sm" id="bc_amount"
+                           value="{{ opp.value or '' }}" step="0.01">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold" style="font-size:.8rem;">Délai de livraison</label>
+                    <input type="text" class="form-control form-control-sm" id="bc_delay"
+                           placeholder="ex: 30 jours, 6 semaines...">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold" style="font-size:.8rem;">Conditions particulières (optionnel)</label>
+                <input type="text" class="form-control form-control-sm" id="bc_conditions"
+                       placeholder="ex: paiement 30% avance, garantie 12 mois...">
+            </div>
+
+            <!-- AI Result -->
+            <div id="aiResult" style="display:none;">
+                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:1rem;margin-bottom:.75rem;">
+                    <div class="fw-bold mb-2" style="font-size:.8rem;color:#059669;">
+                        <i class="fas fa-check-circle me-1"></i>BC généré — vous pouvez modifier avant validation
+                    </div>
+                    <textarea id="bc_content" class="form-control form-control-sm" rows="12"
+                              name="ai_content" style="font-size:.8rem;font-family:monospace;"></textarea>
+                </div>
+            </div>
+
+            <div id="aiLoading" style="display:none;" class="text-center py-3">
+                <div class="spinner-border text-primary" style="width:1.5rem;height:1.5rem;"></div>
+                <div style="font-size:.8rem;color:#64748b;margin-top:.5rem;">Génération en cours...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MANUAL MODE -->
+    <div id="panel-manual" class="card mb-3" style="display:none;">
+        <div class="card-header"><h6 class="mb-0 fw-bold">✏️ Saisie manuelle</h6></div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Montant (TND)</label>
+                <input type="number" name="amount" class="form-control" step="0.01" min="0"
+                       value="{{ opp.value or '' }}" placeholder="0.00">
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Notes / Référence BC</label>
+                <textarea name="notes" class="form-control" rows="3" placeholder="Référence interne, conditions..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- UPLOAD MODE -->
+    <div id="panel-upload" class="card mb-3" style="display:none;">
+        <div class="card-header"><h6 class="mb-0 fw-bold">📤 Upload du BC client</h6></div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Fichier BC</label>
+                <div class="upload-zone" id="uploadZone"
+                     style="border:2px dashed #d1d5db;border-radius:10px;padding:2rem;text-align:center;cursor:pointer;background:#fafafa;"
+                     onclick="document.getElementById('order_file').click()">
+                    <i class="fas fa-cloud-upload-alt fa-2x mb-2" style="color:#94a3b8;"></i>
+                    <div style="font-size:.875rem;color:#64748b;" id="uploadLabel">Cliquez pour sélectionner un fichier</div>
+                    <div style="font-size:.75rem;color:#94a3b8;">PDF, Word, JPG, PNG — max 10MB</div>
+                </div>
+                <input type="file" id="order_file" name="order_file" class="d-none"
+                       accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                       onchange="document.getElementById('uploadLabel').textContent = this.files[0]?.name || 'Aucun fichier'">
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Montant du BC (TND)</label>
+                <input type="number" name="amount" class="form-control" step="0.01" min="0" placeholder="0.00">
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden amount for AI mode -->
+    <input type="hidden" name="amount" id="hiddenAmount">
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-success" id="submitBtn">
+            <i class="fas fa-check me-1"></i>Confirmer — Marquer comme GAGNÉ
+        </button>
+        <a href="{{ url_for('pipeline.view_opportunity', id=opp.id) }}" class="btn btn-light">Annuler</a>
+    </div>
+</form>
+</div></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function setMode(mode) {
+    ['ai','manual','upload'].forEach(m => {
+        document.getElementById('panel-'+m).style.display = m===mode ? '' : 'none';
+        const card = document.getElementById('card-'+m);
+        card.style.border = m===mode ? '2px solid #1a56db' : '2px solid #e2e8f0';
+        card.style.background = m===mode ? '#eff6ff' : '#fff';
+    });
+    document.getElementById('sourceInput').value = mode;
+}
+
+setMode('ai');
+
+async function generateBC() {
+    const client   = document.getElementById('bc_client').value;
+    const product  = document.getElementById('bc_product').value;
+    const amount   = document.getElementById('bc_amount').value;
+    const delay    = document.getElementById('bc_delay').value;
+    const cond     = document.getElementById('bc_conditions').value;
+
+    document.getElementById('aiLoading').style.display = '';
+    document.getElementById('aiResult').style.display  = 'none';
+
+    const prompt = `Tu es un expert commercial tunisien. Rédige un Bon de Commande professionnel en français avec ces informations :
+- Vendeur : {{ current_user.company.name }} — spécialiste HVAC & réfrigération commerciale, Monastir, Tunisie
+- Client : ${client}
+- Objet : ${product}
+- Montant : ${amount} TND HT (TVA 19%)
+- Délai de livraison : ${delay || 'à convenir'}
+- Conditions particulières : ${cond || 'standard'}
+- Date : ${new Date().toLocaleDateString('fr-TN')}
+
+Formate le BC clairement avec : En-tête, Désignation & montant, Conditions de paiement, Délai de livraison, Signature. Garde un ton formel et professionnel.`;
+
+    try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 1000,
+                messages: [{ role: 'user', content: prompt }]
+            })
+        });
+        const data = await res.json();
+        const text = data.content?.map(b => b.text||'').join('') || 'Erreur génération';
+        document.getElementById('bc_content').value = text;
+        document.getElementById('hiddenAmount').value = amount;
+        document.getElementById('aiResult').style.display = '';
+    } catch(e) {
+        document.getElementById('bc_content').value = 'Erreur : ' + e.message;
+        document.getElementById('aiResult').style.display = '';
+    }
+    document.getElementById('aiLoading').style.display = 'none';
+}
+</script>
+{% endblock %}

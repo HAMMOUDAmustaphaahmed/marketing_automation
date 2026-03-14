@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Nouvelle campagne{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('mailing.index') }}">Campagnes</a></li>
+<li class="breadcrumb-item active">Nouvelle campagne</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Nouvelle Campagne Email</h1>
+    <p>Créez et personnalisez votre email de prospection</p>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <form action="{{ url_for('mailing.create') }}" method="POST">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-600">Nom de la campagne</label>
+                        <input type="text" name="name" class="form-control" placeholder="Prospection Q1 2026 — PME Tunisie" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-600">Objet de l'email</label>
+                        <input type="text" name="subject" id="emailSubject" class="form-control" placeholder="Objet accrocheur..." required>
+                    </div>
+
+                    <div class="mb-2 d-flex justify-content-between align-items-center">
+                        <label class="form-label fw-600 mb-0">Corps de l'email (HTML)</label>
+                        <div class="d-flex gap-2 align-items-center">
+                            <input type="text" id="aiSector" class="form-control form-control-sm" placeholder="Secteur cible..." style="max-width:150px;">
+                            <button type="button" class="btn btn-ai btn-sm" onclick="generateEmailAI()">
+                                <i class="fas fa-magic me-1"></i>Générer avec IA
+                            </button>
+                        </div>
+                    </div>
+                    <textarea name="body_html" id="emailBody" class="form-control" rows="12"
+                        placeholder="<p>Bonjour {{name}},</p><p>...</p>
+Variables disponibles : {{name}} = nom du contact, {{company}} = nom de l'entreprise" required></textarea>
+                    <div style="font-size:0.75rem; color:#94a3b8; margin-top:4px;">
+                        Utilisez <code>&#123;&#123;name&#125;&#125;</code> et <code>&#123;&#123;company&#125;&#125;</code> pour personnaliser automatiquement.
+                    </div>
+
+                    <div class="mb-3 mt-3">
+                        <label class="form-label fw-600">Planification (optionnel)</label>
+                        <input type="datetime-local" name="scheduled_at" class="form-control">
+                        <div style="font-size:0.75rem; color:#94a3b8; margin-top:4px;">Laissez vide pour sauvegarder en brouillon.</div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Enregistrer la campagne
+                        </button>
+                        <a href="{{ url_for('mailing.index') }}" class="btn btn-outline-secondary">Annuler</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- AI Loading -->
+        <div id="aiLoadingCard" class="card mb-3" style="display:none;">
+            <div class="card-body text-center py-4">
+                <div class="spinner-border text-primary mb-2" role="status"></div>
+                <div style="font-size:0.875rem; color:#64748b;">Génération en cours...</div>
+            </div>
+        </div>
+
+        <!-- Tips -->
+        <div class="card">
+            <div class="card-header"><h6 class="mb-0 fw-bold">💡 Conseils</h6></div>
+            <div class="card-body" style="font-size:0.8rem; color:#64748b;">
+                <ul class="ps-3 mb-0">
+                    <li class="mb-1">Utilisez <strong>&#123;&#123;name&#125;&#125;</strong> et <strong>&#123;&#123;company&#125;&#125;</strong> pour personnaliser</li>
+                    <li class="mb-1">Soyez concis : max 150 mots dans le corps</li>
+                    <li class="mb-1">Un seul appel à l'action clair</li>
+                    <li class="mb-1">L'IA Grok génère des templates adaptés par secteur</li>
+                    <li>Taux d'ouverture moyen B2B : 20-30%</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function generateEmailAI() {
+    const sector = document.getElementById('aiSector').value;
+    const loadingCard = document.getElementById('aiLoadingCard');
+    
+    loadingCard.style.display = 'block';
+    
+    try {
+        const resp = await fetch('{{ url_for("mailing.generate_template") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sector: sector })
+        });
+        const data = await resp.json();
+        
+        if (data.error) {
+            alert('Erreur IA : ' + data.error);
+        } else {
+            document.getElementById('emailSubject').value = data.subject || '';
+            document.getElementById('emailBody').value = data.body || '';
+        }
+    } catch(e) {
+        alert('Erreur de connexion : ' + e.message);
+    } finally {
+        loadingCard.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

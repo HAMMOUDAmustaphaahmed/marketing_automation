@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Campagnes Email{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Accueil</a></li>
+<li class="breadcrumb-item active">Campagnes Email</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between">
+    <div>
+        <h1>Campagnes Email</h1>
+        <p>Gérez vos campagnes de prospection par email</p>
+    </div>
+    <a href="{{ url_for('mailing.create') }}" class="btn btn-primary btn-sm">
+        <i class="fas fa-plus me-1"></i>Nouvelle campagne
+    </a>
+</div>
+
+<div class="row g-3">
+{% if campaigns %}
+{% for c in campaigns %}
+<div class="col-md-6 col-xl-4">
+    <div class="card h-100">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h6 class="fw-bold mb-0" style="font-size:0.9rem;">{{ c.name }}</h6>
+                <span class="badge {% if c.status == 'sent' %}bg-success{% elif c.status == 'scheduled' %}bg-warning text-dark{% else %}bg-secondary{% endif %}" style="font-size:0.65rem;">
+                    {{ c.status }}
+                </span>
+            </div>
+            <div style="font-size:0.8rem; color:#64748b;" class="mb-3">{{ c.subject[:60] }}{% if c.subject|length > 60 %}...{% endif %}</div>
+
+            <div class="row g-2 text-center mb-3">
+                <div class="col-3">
+                    <div class="fw-bold" style="font-size:1.1rem; color:#1a56db;">{{ c.total_sent }}</div>
+                    <div style="font-size:0.65rem; color:#94a3b8;">Envoyés</div>
+                </div>
+                <div class="col-3">
+                    <div class="fw-bold" style="font-size:1.1rem; color:#059669;">{{ c.total_opened }}</div>
+                    <div style="font-size:0.65rem; color:#94a3b8;">Ouverts</div>
+                </div>
+                <div class="col-3">
+                    <div class="fw-bold" style="font-size:1.1rem; color:#7c3aed;">{{ c.total_clicked }}</div>
+                    <div style="font-size:0.65rem; color:#94a3b8;">Cliqués</div>
+                </div>
+                <div class="col-3">
+                    <div class="fw-bold" style="font-size:1.1rem; color:#d97706;">{{ c.total_replied }}</div>
+                    <div style="font-size:0.65rem; color:#94a3b8;">Répondus</div>
+                </div>
+            </div>
+
+            <a href="{{ url_for('mailing.view', id=c.id) }}" class="btn btn-sm btn-outline-primary w-100" style="font-size:0.8rem;">
+                <i class="fas fa-eye me-1"></i>Voir la campagne
+            </a>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="col-12">
+    <div class="text-center py-5" style="color:#94a3b8;">
+        <i class="fas fa-envelope fa-3x mb-3"></i>
+        <h5>Aucune campagne email</h5>
+        <p>Créez votre première campagne pour contacter vos prospects.</p>
+        <a href="{{ url_for('mailing.create') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>Créer une campagne
+        </a>
+    </div>
+</div>
+{% endif %}
+</div>
+{% endblock %}

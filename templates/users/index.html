@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Gestion des Utilisateurs{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Utilisateurs</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1>👥 Gestion des Utilisateurs</h1>
+        <p>Gérez les membres de votre équipe et leurs droits d'accès</p>
+    </div>
+    <a href="{{ url_for('users.invite') }}" class="btn btn-primary">
+        <i class="fas fa-user-plus me-1"></i>Inviter un utilisateur
+    </a>
+</div>
+
+<!-- Summary cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card text-center py-3">
+            <div style="font-size:2rem;font-weight:800;color:#1a56db;">{{ members|length }}</div>
+            <div style="font-size:.8rem;color:#64748b;">Total membres</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center py-3">
+            <div style="font-size:2rem;font-weight:800;color:#059669;">{{ members|selectattr('is_active')|list|length }}</div>
+            <div style="font-size:.8rem;color:#64748b;">Actifs</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center py-3">
+            <div style="font-size:2rem;font-weight:800;color:#7c3aed;">{{ members|selectattr('role','eq','admin')|list|length }}</div>
+            <div style="font-size:.8rem;color:#64748b;">Admins</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center py-3">
+            <div style="font-size:2rem;font-weight:800;color:#dc2626;">{{ members|rejectattr('is_active')|list|length }}</div>
+            <div style="font-size:.8rem;color:#64748b;">Inactifs</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h6 class="mb-0 fw-bold">Membres de {{ current_user.company.name }}</h6></div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead style="background:#f8fafc;">
+                <tr>
+                    <th>Utilisateur</th>
+                    <th>Rôle</th>
+                    <th class="text-center">Lire</th>
+                    <th class="text-center">Créer</th>
+                    <th class="text-center">Modifier</th>
+                    <th class="text-center">Supprimer</th>
+                    <th class="text-center">Statut</th>
+                    <th class="text-center">Dernière connexion</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for u in members %}
+            <tr class="{% if not u.is_active %}table-secondary{% endif %}">
+                <td>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="avatar" style="width:36px;height:36px;border-radius:50%;background:{% if u.role=='admin' %}#1a56db{% else %}#64748b{% endif %};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.875rem;flex-shrink:0;">
+                            {{ u.name[0].upper() }}
+                        </div>
+                        <div>
+                            <div class="fw-bold" style="font-size:.875rem;">
+                                {{ u.name }}
+                                {% if u.id == current_user.id %}<span class="badge bg-primary ms-1" style="font-size:.6rem;">Vous</span>{% endif %}
+                            </div>
+                            <div class="text-muted" style="font-size:.75rem;">{{ u.email }}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <span class="badge {% if u.role=='admin' %}bg-primary{% else %}bg-secondary{% endif %}">
+                        {% if u.role == 'admin' %}👑 Admin{% else %}👤 Membre{% endif %}
+                    </span>
+                </td>
+                {% for perm, val in [('can_read', u.can_read), ('can_create', u.can_create), ('can_edit', u.can_edit), ('can_delete', u.can_delete)] %}
+                <td class="text-center">
+                    {% if u.role == 'admin' or val %}
+                    <i class="fas fa-check-circle" style="color:#059669;"></i>
+                    {% else %}
+                    <i class="fas fa-times-circle" style="color:#d1d5db;"></i>
+                    {% endif %}
+                </td>
+                {% endfor %}
+                <td class="text-center">
+                    {% if u.is_active %}
+                    <span class="badge bg-success" style="font-size:.7rem;">Actif</span>
+                    {% else %}
+                    <span class="badge bg-danger" style="font-size:.7rem;">Inactif</span>
+                    {% endif %}
+                </td>
+                <td class="text-center" style="font-size:.75rem;color:#94a3b8;">
+                    {{ u.last_login.strftime('%d/%m %H:%M') if u.last_login else '—' }}
+                </td>
+                <td class="text-center">
+                    {% if u.id != current_user.id %}
+                    <div class="d-flex gap-1 justify-content-center">
+                        <a href="{{ url_for('users.edit', id=u.id) }}" class="btn btn-sm btn-outline-warning" title="Modifier permissions">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <form action="{{ url_for('users.toggle', id=u.id) }}" method="POST">
+                            <button type="submit" class="btn btn-sm {% if u.is_active %}btn-outline-secondary{% else %}btn-outline-success{% endif %}"
+                                    title="{% if u.is_active %}Désactiver{% else %}Activer{% endif %}">
+                                <i class="fas fa-{% if u.is_active %}ban{% else %}check{% endif %}"></i>
+                            </button>
+                        </form>
+                        {% if u.role != 'admin' %}
+                        <form action="{{ url_for('users.delete', id=u.id) }}" method="POST"
+                              onsubmit="return confirm('Supprimer {{ u.name }} ? Cette action est irréversible.')">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <span style="font-size:.75rem;color:#94a3b8;">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+</div>
+
+<!-- Permissions legend -->
+<div class="card mt-3" style="background:#f8fafc;">
+    <div class="card-body py-2">
+        <div class="d-flex gap-4 flex-wrap" style="font-size:.78rem;color:#64748b;">
+            <span><i class="fas fa-eye me-1 text-primary"></i><strong>Lire</strong> : Consulter les données</span>
+            <span><i class="fas fa-plus me-1 text-success"></i><strong>Créer</strong> : Ajouter des enregistrements</span>
+            <span><i class="fas fa-edit me-1 text-warning"></i><strong>Modifier</strong> : Éditer les données existantes</span>
+            <span><i class="fas fa-trash me-1 text-danger"></i><strong>Supprimer</strong> : Effacer des enregistrements</span>
+            <span><i class="fas fa-crown me-1" style="color:#7c3aed;"></i><strong>Admin</strong> : Tous les droits + gestion équipe</span>
+        </div>
+    </div>
+</div>
+{% endblock %}

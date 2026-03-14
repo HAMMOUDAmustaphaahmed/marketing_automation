@@ -1,0 +1,189 @@
+/* ============================================================
+   SMarketing — pipeline.css
+   Styles Kanban CRM + Pipeline
+   ============================================================ */
+
+/* ── KANBAN BOARD ───────────────────────────────────────────── */
+.kanban-board {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 1rem;
+  align-items: flex-start;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gray-300) transparent;
+}
+.kanban-board::-webkit-scrollbar { height: 6px; }
+.kanban-board::-webkit-scrollbar-track { background: transparent; }
+.kanban-board::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
+
+/* ── KANBAN COLUMN ──────────────────────────────────────────── */
+.kanban-col {
+  min-width: 248px;
+  max-width: 248px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.kanban-col-header {
+  padding: .625rem .875rem;
+  font-weight: 700;
+  font-size: .78125rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  user-select: none;
+}
+.kanban-col-header .col-count {
+  background: rgba(0,0,0,.12);
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: .6875rem;
+  font-weight: 700;
+}
+
+.kanban-body {
+  background: var(--gray-50);
+  min-height: 80px;
+  padding: .5rem;
+}
+
+/* Column color schemes */
+.kanban-col-replied    .kanban-col-header { background: #dbeafe; color: #1e40af; }
+.kanban-col-interested .kanban-col-header { background: #fef3c7; color: #92400e; }
+.kanban-col-quoted     .kanban-col-header { background: #ede9fe; color: #5b21b6; }
+.kanban-col-won        .kanban-col-header { background: #d1fae5; color: #065f46; }
+.kanban-col-lost       .kanban-col-header { background: #fee2e2; color: #991b1b; }
+.kanban-col-delivered  .kanban-col-header { background: #ccfbf1; color: #0f766e; }
+.kanban-col-maintenance .kanban-col-header { background: #fef9c3; color: #713f12; }
+
+/* ── KANBAN CARD ────────────────────────────────────────────── */
+.kanban-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: .75rem;
+  margin-bottom: .4375rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,.07);
+  cursor: pointer;
+  transition: box-shadow .2s, transform .15s;
+  border: 1.5px solid transparent;
+}
+.kanban-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+  border-color: var(--gray-200);
+}
+.kanban-card-title {
+  font-size: .8125rem;
+  font-weight: 700;
+  color: var(--gray-800);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kanban-card-sub {
+  font-size: .75rem;
+  color: var(--gray-400);
+  margin-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kanban-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.kanban-card-value {
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+.kanban-card-prob {
+  font-size: .6875rem;
+  color: var(--gray-400);
+  background: var(--gray-100);
+  border-radius: 10px;
+  padding: 1px 6px;
+}
+.kanban-card-date {
+  font-size: .6875rem;
+  color: var(--gray-400);
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.kanban-empty {
+  text-align: center;
+  padding: 1.5rem .5rem;
+  color: var(--gray-300);
+  font-size: .8125rem;
+}
+
+/* ── PIPELINE LEGEND ────────────────────────────────────────── */
+.pipeline-legend {
+  display: flex;
+  gap: .75rem;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: .75rem;
+  color: var(--gray-500);
+  padding: .5rem .875rem;
+}
+.pipeline-legend-sep { color: var(--gray-300); }
+
+/* ── STAGE PROGRESS BAR ─────────────────────────────────────── */
+.stage-progress {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin: 1rem 0;
+}
+.stage-step {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--gray-200);
+  position: relative;
+}
+.stage-step.active  { background: var(--primary); }
+.stage-step.done    { background: var(--success); }
+.stage-step.current { background: var(--warning); }
+
+/* ── OPPORTUNITY DETAIL ─────────────────────────────────────── */
+.opp-value-display {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: -1px;
+}
+.opp-prob-display {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--gray-700);
+}
+
+/* Quote line items table */
+.quote-items-table th { background: var(--primary); color: #fff; font-size: .75rem; }
+.quote-items-table .item-total-col { font-weight: 700; color: var(--primary); }
+.quote-total-row { background: var(--primary); color: #fff; font-weight: 700; }
+
+/* Delivery card */
+.delivery-card {
+  border-radius: 10px;
+  padding: 1rem;
+  border: 2px solid var(--gray-200);
+}
+.delivery-card.delivered {
+  border-color: var(--success);
+  background: #f0fdf4;
+}
+.delivery-card.pending {
+  border-color: var(--warning);
+  background: #fffbeb;
+}

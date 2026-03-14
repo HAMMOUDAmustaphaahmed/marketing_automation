@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Marketing Automation{% endblock %} — SMarketing</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1a56db;
+            --primary-dark: #1e429f;
+            --sidebar-bg: #0f172a;
+            --sidebar-text: #94a3b8;
+            --sidebar-active: #1a56db;
+            --accent: #e1effe;
+        }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f1f5f9; }
+
+        /* SIDEBAR */
+        #sidebar {
+            width: 260px; min-height: 100vh; background: var(--sidebar-bg);
+            position: fixed; top: 0; left: 0; z-index: 1000;
+            display: flex; flex-direction: column;
+        }
+        .sidebar-brand {
+            padding: 1.5rem 1.25rem; border-bottom: 1px solid #1e293b;
+        }
+        .sidebar-brand h4 {
+            color: white; font-weight: 800; margin: 0; font-size: 1.2rem;
+            letter-spacing: -0.5px;
+        }
+        .sidebar-brand span { color: var(--primary); }
+        .sidebar-company {
+            font-size: 0.7rem; color: var(--sidebar-text); margin-top: 2px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .nav-section {
+            padding: 1.5rem 1.25rem 0.5rem;
+            font-size: 0.65rem; font-weight: 700; letter-spacing: 1.5px;
+            color: #475569; text-transform: uppercase;
+        }
+        #sidebar .nav-link {
+            color: var(--sidebar-text); padding: 0.6rem 1.25rem;
+            border-radius: 8px; margin: 1px 0.5rem; transition: all 0.2s;
+            font-size: 0.875rem; display: flex; align-items: center; gap: 10px;
+        }
+        #sidebar .nav-link:hover { background: #1e293b; color: white; }
+        #sidebar .nav-link.active { background: var(--primary); color: white; }
+        #sidebar .nav-link i { width: 18px; text-align: center; font-size: 0.875rem; }
+        .sidebar-badge {
+            margin-left: auto; background: #ef4444; color: white;
+            border-radius: 10px; padding: 1px 7px; font-size: 0.65rem; font-weight: 600;
+        }
+        .sidebar-footer {
+            margin-top: auto; padding: 1rem; border-top: 1px solid #1e293b;
+        }
+        .sidebar-footer .nav-link { font-size: 0.8rem; }
+
+        /* MAIN CONTENT */
+        #main-content { margin-left: 260px; }
+        .topbar {
+            background: white; border-bottom: 1px solid #e2e8f0;
+            padding: 0.75rem 1.5rem; display: flex; align-items: center;
+            justify-content: space-between; position: sticky; top: 0; z-index: 100;
+        }
+        .page-content { padding: 1.5rem; }
+        .page-header { margin-bottom: 1.5rem; }
+        .page-header h1 { font-size: 1.5rem; font-weight: 700; color: #0f172a; margin: 0; }
+        .page-header p { color: #64748b; margin: 0; font-size: 0.875rem; }
+
+        /* CARDS */
+        .card { border: none; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+        .card-header { border-bottom: 1px solid #f1f5f9; background: white; border-radius: 12px 12px 0 0 !important; padding: 1rem 1.25rem; }
+        .stat-card { border-radius: 12px; padding: 1.25rem; color: white; }
+        .stat-card .stat-value { font-size: 2rem; font-weight: 800; line-height: 1; }
+        .stat-card .stat-label { font-size: 0.8rem; opacity: 0.85; margin-top: 4px; }
+        .stat-card .stat-icon { font-size: 2rem; opacity: 0.3; }
+
+        /* TABLES */
+        .table { font-size: 0.875rem; }
+        .table th { font-weight: 600; color: #475569; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .table td { vertical-align: middle; }
+
+        /* BADGES */
+        .badge-status { padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; }
+        .status-new         { background: #f1f5f9; color: #64748b; }
+        .status-contacted   { background: #dbeafe; color: #1d4ed8; }
+        .status-replied     { background: #fef3c7; color: #92400e; }
+        .status-interested  { background: #d1fae5; color: #065f46; }
+        .status-quoted      { background: #ede9fe; color: #5b21b6; }
+        .status-won         { background: #d1fae5; color: #065f46; }
+        .status-lost        { background: #fee2e2; color: #991b1b; }
+        .status-delivered   { background: #ccfbf1; color: #0f766e; }
+        .status-maintenance { background: #fef9c3; color: #713f12; }
+
+        /* SCORE BARS */
+        .score-bar { height: 6px; border-radius: 3px; background: #e2e8f0; overflow: hidden; }
+        .score-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+
+        /* BUTTONS */
+        .btn-primary { background: var(--primary); border-color: var(--primary); }
+        .btn-primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+        .btn-ai { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; }
+        .btn-ai:hover { opacity: 0.9; color: white; }
+
+        /* FLASH MESSAGES */
+        .flash-container { position: fixed; top: 70px; right: 20px; z-index: 9999; min-width: 300px; }
+
+        /* KANBAN */
+        .kanban-board { display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 1rem; }
+        .kanban-col { min-width: 240px; max-width: 260px; flex-shrink: 0; }
+        .kanban-col-header { border-radius: 8px 8px 0 0; padding: 0.75rem 1rem; font-weight: 700; font-size: 0.8rem; }
+        .kanban-body { background: #f8fafc; border-radius: 0 0 8px 8px; min-height: 100px; padding: 0.5rem; }
+        .kanban-card { background: white; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,.08); cursor: pointer; transition: box-shadow 0.2s; }
+        .kanban-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.15); }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            #sidebar { transform: translateX(-100%); transition: transform 0.3s; }
+            #sidebar.show { transform: translateX(0); }
+            #main-content { margin-left: 0; }
+        }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+    <div class="sidebar-brand">
+        <h4>S<span>Marketing</span></h4>
+        {% if current_user.is_authenticated and current_user.company %}
+        <div class="sidebar-company">
+            <i class="fas fa-building me-1"></i>{{ current_user.company.name }}
+        </div>
+        {% endif %}
+    </div>
+
+    <ul class="nav flex-column mt-2">
+        <div class="nav-section">Intelligence</div>
+            <a href="{{ url_for('intelligence.client_history') }}" class="nav-link {% if 'client_history' in request.endpoint %}active{% endif %}">
+                <i class="fas fa-history"></i> Historique Client
+            </a>
+            <a href="{{ url_for('intelligence.linkedin_search') }}" class="nav-link {% if 'linkedin' in request.endpoint %}active{% endif %}">
+                <i class="fab fa-linkedin" style="color:#0a66c2;"></i> LinkedIn Intel
+            </a>
+
+        <div class="nav-section">Tableau de bord</div>
+        <li class="nav-item">
+            <a href="{{ url_for('dashboard.index') }}" class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+                <i class="fas fa-chart-line"></i> Vue d'ensemble
+            </a>
+        </li>
+
+        <div class="nav-section">Intelligence</div>
+        <li class="nav-item">
+            <a href="{{ url_for('competitors.index') }}" class="nav-link {% if 'competitors' in request.endpoint %}active{% endif %}">
+                <i class="fas fa-chess"></i> Concurrents
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="{{ url_for('prospects.index') }}" class="nav-link {% if 'prospects' in request.endpoint %}active{% endif %}">
+                <i class="fas fa-users"></i> Prospects
+            </a>
+        </li>
+
+        <div class="nav-section">Commercial</div>
+        <li class="nav-item">
+            <a href="{{ url_for('mailing.index') }}" class="nav-link {% if 'mailing' in request.endpoint %}active{% endif %}">
+                <i class="fas fa-envelope"></i> Campagnes Email
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="{{ url_for('pipeline.index') }}" class="nav-link {% if 'pipeline' in request.endpoint %}active{% endif %}">
+                <i class="fas fa-funnel-dollar"></i> Pipeline CRM
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="{{ url_for('maintenance.index') }}" class="nav-link {% if 'maintenance' in request.endpoint %}active{% endif %}">
+                <i class="fas fa-tools"></i> Maintenance
+            </a>
+        </li>
+        {% if current_user.role == 'admin' %}
+        <li class="nav-item">
+            <a href="{{ url_for('users.index') }}" class="nav-link {% if 'users' in request.endpoint %}active{% endif %}">
+                <i class="fas fa-users-cog"></i> Utilisateurs
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+
+    <div class="sidebar-footer">
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a href="{{ url_for('auth.profile') }}" class="nav-link {% if 'profile' in request.endpoint %}active{% endif %}">
+                    <i class="fas fa-cog"></i> Mon profil
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('auth.logout') }}" class="nav-link">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
+        {% if current_user.is_authenticated %}
+        <div class="mt-2 px-2" style="font-size:0.75rem; color:#475569;">
+            <i class="fas fa-user-circle me-1"></i>{{ current_user.name }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- MAIN -->
+<div id="main-content">
+    <div class="topbar">
+        <div class="d-flex align-items-center gap-3">
+            <button class="btn btn-sm btn-light d-md-none" onclick="document.getElementById('sidebar').classList.toggle('show')">
+                <i class="fas fa-bars"></i>
+            </button>
+            <nav aria-label="breadcrumb" class="d-none d-md-block">
+                <ol class="breadcrumb mb-0" style="font-size:0.8rem;">
+                    {% block breadcrumb %}
+                    <li class="breadcrumb-item active">Tableau de bord</li>
+                    {% endblock %}
+                </ol>
+            </nav>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-success bg-opacity-10 text-success d-none d-sm-inline-flex align-items-center gap-1" style="font-size:0.75rem;">
+                <i class="fas fa-circle" style="font-size:6px;"></i> En ligne
+            </span>
+            <span style="font-size:0.875rem; color:#64748b;">{{ current_user.name if current_user.is_authenticated else '' }}</span>
+        </div>
+    </div>
+
+    <!-- FLASH MESSAGES -->
+    <div class="flash-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show shadow-sm" role="alert" style="font-size:0.875rem;">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endwith %}
+    </div>
+
+    <div class="page-content">
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer style="
+        margin-top:3rem;
+        background: #f8fafc;
+        border-top: 1px solid #e2e8f0;
+        position: relative;
+        overflow: hidden;
+        font-family: inherit;
+    ">
+        <!-- Rainbow top bar -->
+        <div style="position:absolute;top:0;left:0;right:0;height:4px;
+            background:linear-gradient(90deg,#1a56db 0%,#7c3aed 25%,#0891b2 50%,#059669 75%,#1a56db 100%);
+            background-size:200% 100%; animation:fglow 5s linear infinite;"></div>
+        <style>
+            @keyframes fglow{0%{background-position:0% 0%}100%{background-position:200% 0%}}
+            @keyframes hbeat{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
+            .ftr-badge{display:inline-flex;align-items:center;gap:.3rem;font-size:.7rem;
+                font-weight:600;padding:3px 10px;border-radius:20px;border:1.5px solid;
+                transition:all .2s;cursor:default;}
+            .ftr-badge:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(0,0,0,.08);}
+            .ftr-kw2 span{font-size:.67rem;font-weight:600;letter-spacing:.07em;
+                text-transform:uppercase;color:#94a3b8;}
+            .ftr-kw2 .arr{color:#cbd5e1;}
+            .ftr-amh2{display:inline-flex;align-items:center;gap:.3rem;color:#1a56db;
+                font-weight:700;text-decoration:none;font-size:.8rem;
+                padding:3px 10px;border-radius:6px;border:1.5px solid #bfdbfe;
+                background:#eff6ff;transition:all .2s;}
+            .ftr-amh2:hover{background:#1a56db;color:#fff;border-color:#1a56db;
+                transform:translateY(-2px);box-shadow:0 4px 12px rgba(26,86,219,.25);}
+            .ftr-amh2 .fab{color:#0a66c2;}
+            .ftr-amh2:hover .fab{color:#fff;}
+            .ftr-divider2{width:100%;height:1px;background:#e2e8f0;margin:.1rem 0;}
+        </style>
+
+        <!-- MAIN CONTENT -->
+        <div style="padding:1.6rem 2rem 0;">
+
+            <!-- Row 1: 3 columns like the example -->
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1.5rem;margin-bottom:1.2rem;">
+
+                <!-- Col 1: GBM Identity -->
+                <div style="flex:1;min-width:200px;">
+                    <div style="display:flex;align-items:center;gap:.7rem;margin-bottom:.6rem;">
+                        <div style="background:#000;border-radius:8px;padding:4px 8px;display:inline-flex;">
+                        <img src="{{ url_for('static', filename='img/logo-gbm.webp') }}"
+                             alt="GBM" style="height:40px;width:auto;object-fit:contain;"
+                             onerror="this.style.display='none'">
+                        </div>
+                        <div>
+                            <div style="font-size:.95rem;font-weight:800;color:#0f172a;line-height:1.1;">Groupe Bayoudh Métal</div>
+                            <div style="font-size:.62rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#94a3b8;">Industrie &amp; Construction</div>
+                        </div>
+                    </div>
+                    <p style="font-size:.73rem;color:#64748b;line-height:1.6;max-width:260px;margin:0;">
+                        Application web dédiée à la gestion commerciale et au suivi marketing des activités du groupe.
+                    </p>
+                </div>
+
+                <!-- Col 2: SMarketing app card -->
+                <div style="flex:0 0 auto;">
+                    <div style="
+                        background:#fff;border:1px solid #e2e8f0;border-radius:14px;
+                        padding:1.1rem 1.5rem;text-align:center;
+                        box-shadow:0 2px 12px rgba(26,86,219,.07);
+                        min-width:170px;
+                    ">
+                        <div style="
+                            width:46px;height:46px;border-radius:12px;
+                            background:linear-gradient(135deg,#1a56db,#7c3aed);
+                            display:flex;align-items:center;justify-content:center;
+                            margin:0 auto .6rem;
+                            box-shadow:0 4px 14px rgba(26,86,219,.3);
+                        ">
+                            <i class="fas fa-chart-line" style="color:#fff;font-size:1.1rem;"></i>
+                        </div>
+                        <div style="font-size:.9rem;font-weight:800;color:#0f172a;letter-spacing:.02em;">SMarketing</div>
+                        <div style="font-size:.6rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#94a3b8;margin-top:2px;">Gestion Commerciale</div>
+                    </div>
+                </div>
+
+                <!-- Col 3: Links + Status -->
+                <div style="flex:0 0 auto;text-align:right;display:flex;flex-direction:column;gap:.5rem;align-items:flex-end;">
+                    <a href="https://www.linkedin.com/company/groupe-bayoudh-metal" target="_blank" rel="noopener"
+                       style="display:inline-flex;align-items:center;gap:.4rem;font-size:.75rem;font-weight:600;
+                              color:#0a66c2;text-decoration:none;padding:4px 10px;border-radius:6px;
+                              border:1.5px solid #bfdbfe;background:#eff6ff;transition:all .2s;"
+                       onmouseover="this.style.background='#0a66c2';this.style.color='#fff'"
+                       onmouseout="this.style.background='#eff6ff';this.style.color='#0a66c2'">
+                        <i class="fab fa-linkedin"></i> Groupe Bayoudh Métal
+                    </a>
+                    <div style="font-size:.72rem;color:#94a3b8;">
+                        <span style="color:#cbd5e1;">&lt;/&gt;</span>
+                        Designed &amp; built by
+                        <a href="https://www.linkedin.com/in/hammouda-ahmed-mustapha-a55270195/"
+                           target="_blank" rel="noopener" class="ftr-amh2" style="margin-left:4px;">
+                            <i class="fab fa-linkedin"></i> AMH
+                        </a>
+                    </div>
+                    <div style="display:inline-flex;align-items:center;gap:.35rem;font-size:.68rem;
+                                font-weight:600;color:#059669;padding:3px 10px;border-radius:20px;
+                                background:#f0fdf4;border:1.5px solid #bbf7d0;">
+                        <span style="width:6px;height:6px;background:#059669;border-radius:50%;
+                                     animation:hbeat 2s ease-in-out infinite;display:inline-block;"></span>
+                        Système opérationnel
+                    </div>
+                </div>
+            </div>
+
+            <!-- Companies row -->
+            <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem;">
+                <span class="ftr-badge" style="color:#6b7280;border-color:#d1d5db;background:#f9fafb;">
+                    <span style="width:7px;height:7px;background:#6b7280;border-radius:50%;"></span>Transmetal
+                </span>
+                <span class="ftr-badge" style="color:#dc2626;border-color:#fecaca;background:#fef2f2;">
+                    <span style="width:7px;height:7px;background:#dc2626;border-radius:50%;"></span>Tunisie Panneaux
+                </span>
+                <span class="ftr-badge" style="color:#ea580c;border-color:#fed7aa;background:#fff7ed;">
+                    <span style="width:7px;height:7px;background:#ea580c;border-radius:50%;"></span>STTM Négoce
+                </span>
+                <span class="ftr-badge" style="color:#ca8a04;border-color:#fde68a;background:#fefce8;">
+                    <span style="width:7px;height:7px;background:#ca8a04;border-radius:50%;"></span>METTEC
+                </span>
+                <span class="ftr-badge" style="color:#1a56db;border-color:#bfdbfe;background:#eff6ff;">
+                    <span style="width:7px;height:7px;background:#1a56db;border-radius:50%;"></span>COGEPAM
+                </span>
+            </div>
+
+            <!-- Marketing keywords -->
+            <div style="display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin-bottom:1rem;" class="ftr-kw2">
+                <span>Prospection</span><span class="arr">▸</span>
+                <span>Intelligence</span><span class="arr">▸</span>
+                <span>Pipeline CRM</span><span class="arr">▸</span>
+                <span>Automation</span><span class="arr">▸</span>
+                <span>Analytics</span><span class="arr">▸</span>
+                <span>Lead Generation</span><span class="arr">▸</span>
+                <span>Growth</span>
+            </div>
+
+        </div>
+
+        <!-- Bottom bar -->
+        <div style="
+            padding:.7rem 2rem;
+            background:#f1f5f9;
+            border-top:1px solid #e2e8f0;
+            display:flex;align-items:center;justify-content:space-between;
+            flex-wrap:wrap;gap:.5rem;
+        ">
+            <span style="font-size:.72rem;color:#94a3b8;">
+                &copy; 2026 Groupe Bayoudh Métal — Tous droits réservés
+            </span>
+            <div style="display:flex;align-items:center;gap:.4rem;font-size:.72rem;color:#94a3b8;">
+                <span>Crafted with</span>
+                <i class="fas fa-heart" style="color:#f43f5e;animation:hbeat 1.5s ease-in-out infinite;"></i>
+                <span>by</span>
+                <a href="https://www.linkedin.com/in/hammouda-ahmed-mustapha-a55270195/"
+                   target="_blank" rel="noopener" class="ftr-amh2">
+                    <i class="fab fa-linkedin"></i> AMH
+                </a>
+            </div>
+        </div>
+    </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// Auto-dismiss alerts after 5s
+setTimeout(() => {
+    document.querySelectorAll('.alert').forEach(el => {
+        const alert = bootstrap.Alert.getOrCreateInstance(el);
+        if (alert) alert.close();
+    });
+}, 5000);
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

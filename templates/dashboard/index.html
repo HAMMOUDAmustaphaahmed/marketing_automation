@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+{% block title %}Tableau de bord{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <div>
+        <h1>Tableau de bord</h1>
+        <p>Bonjour <strong>{{ current_user.name }}</strong> 👋 — {{ current_user.company.name }}</p>
+    </div>
+    <!-- DATE FILTER -->
+    <form method="GET" action="{{ url_for('dashboard.index') }}" class="d-flex align-items-center gap-2 flex-wrap">
+        <div class="d-flex gap-1 flex-wrap">
+            {% for p, label in [('7d','7 jours'),('30d','30 jours'),('90d','90 jours'),('year','Cette année')] %}
+            <a href="{{ url_for('dashboard.index', preset=p) }}"
+               class="btn btn-sm {% if preset == p %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+               style="font-size:.72rem;padding:3px 9px;">{{ label }}</a>
+            {% endfor %}
+        </div>
+        <div class="d-flex align-items-center gap-1">
+            <input type="date" name="date_from" class="form-control form-control-sm"
+                   style="max-width:140px;font-size:.8rem;" value="{{ date_from }}">
+            <span style="color:#94a3b8;">→</span>
+            <input type="date" name="date_to" class="form-control form-control-sm"
+                   style="max-width:140px;font-size:.8rem;" value="{{ date_to }}">
+            <button type="submit" class="btn btn-primary btn-sm" style="font-size:.75rem;">
+                <i class="fas fa-filter me-1"></i>Filtrer
+            </button>
+            {% if date_from or date_to or preset %}
+            <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary btn-sm"
+               style="font-size:.75rem;" title="Réinitialiser">✕</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+{% if date_from or date_to or preset %}
+<div class="alert py-2 mb-3" style="background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;font-size:.8rem;">
+    <i class="fas fa-filter me-1"></i><strong>Filtre actif :</strong>
+    {% if preset == '7d' %}7 derniers jours
+    {% elif preset == '30d' %}30 derniers jours
+    {% elif preset == '90d' %}90 derniers jours
+    {% elif preset == 'year' %}Depuis le 1er janvier
+    {% else %}
+        {% if date_from %}Du <strong>{{ date_from }}</strong>{% endif %}
+        {% if date_to %} au <strong>{{ date_to }}</strong>{% endif %}
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- KPI CARDS -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-xl-3">
+        <div class="stat-card" style="background:linear-gradient(135deg,#1a56db,#1e429f);">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-value counter" data-target="{{ total_prospects }}">0</div>
+                    <div class="stat-label">Prospects</div>
+                </div>
+                <i class="fas fa-users stat-icon"></i>
+            </div>
+            <div class="mt-2" style="font-size:.72rem;opacity:.85;">{{ contacted }} contactés · {{ replied }} ont répondu</div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="stat-card" style="background:linear-gradient(135deg,#059669,#047857);">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-value counter" data-target="{{ won }}">0</div>
+                    <div class="stat-label">Affaires gagnées</div>
+                </div>
+                <i class="fas fa-trophy stat-icon"></i>
+            </div>
+            <div class="mt-2" style="font-size:.72rem;opacity:.85;">Taux : <strong>{{ conversion_rate }}%</strong></div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="stat-card" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-value" style="font-size:1.5rem;">{{ "%.0f"|format(pipeline_value) }}</div>
+                    <div class="stat-label">Pipeline actif (TND)</div>
+                </div>
+                <i class="fas fa-funnel-dollar stat-icon"></i>
+            </div>
+            <div class="mt-2" style="font-size:.72rem;opacity:.85;">{{ opportunities }} opportunités en cours</div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="stat-card" style="background:linear-gradient(135deg,#d97706,#b45309);">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-value" style="font-size:1.5rem;">{{ "%.0f"|format(won_value) }}</div>
+                    <div class="stat-label">CA réalisé (TND)</div>
+                </div>
+                <i class="fas fa-coins stat-icon"></i>
+            </div>
+            <div class="mt-2" style="font-size:.72rem;opacity:.85;">
+                Maintenance : {{ "%.0f"|format(maint_value) }} TND
+                {% if expiring_contracts > 0 %}
+                · <span style="background:rgba(255,255,255,.25);border-radius:4px;padding:0 5px;">⚠️ {{ expiring_contracts }} expirent bientôt</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header"><h6 class="mb-0 fw-bold">📊 Entonnoir de conversion</h6></div>
+            <div class="card-body"><canvas id="funnelChart" height="220"></canvas></div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header"><h6 class="mb-0 fw-bold">📈 Revenus — 6 derniers mois (TND)</h6></div>
+            <div class="card-body"><canvas id="revenueChart" height="220"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header"><h6 class="mb-0 fw-bold">🎯 Répartition pipeline</h6></div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                <div style="max-width:230px;width:100%;"><canvas id="donutChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header"><h6 class="mb-0 fw-bold">⚡ Actions rapides</h6></div>
+            <div class="card-body d-flex flex-column gap-2">
+                <a href="{{ url_for('pipeline.new_opportunity') }}" class="btn btn-primary btn-sm text-start">
+                    <i class="fas fa-star me-2"></i>Nouvelle opportunité CRM
+                </a>
+                <a href="{{ url_for('maintenance.new') }}" class="btn btn-sm text-start"
+                   style="background:#e0f7fa;color:#0891b2;border:1px solid #a5f3fc;">
+                    <i class="fas fa-tools me-2"></i>Nouvelle opportunité Maintenance
+                </a>
+                <form action="{{ url_for('prospects.generate') }}" method="POST">
+                    <input type="hidden" name="count" value="20">
+                    <button type="submit" class="btn btn-ai w-100 text-start btn-sm">
+                        <i class="fas fa-magic me-2"></i>Générer 20 prospects (IA)
+                    </button>
+                </form>
+                <a href="{{ url_for('mailing.create') }}" class="btn btn-outline-secondary btn-sm text-start">
+                    <i class="fas fa-envelope me-2"></i>Nouvelle campagne email
+                </a>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('prospects.export_xlsx') }}" class="btn btn-outline-success btn-sm flex-fill text-start">
+                        <i class="fas fa-file-excel me-1"></i>Prospects
+                    </a>
+                    <a href="{{ url_for('competitors.export_xlsx') }}" class="btn btn-outline-success btn-sm flex-fill text-start">
+                        <i class="fas fa-file-excel me-1"></i>Concurrents
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header"><h6 class="mb-0 fw-bold">📋 Indicateurs</h6></div>
+            <div class="card-body p-0">
+                {% for label, val, color in [
+                    ('Opportunités ouvertes', opportunities, '#1a56db'),
+                    ('Affaires gagnées', won, '#059669'),
+                    ('Affaires perdues', lost, '#dc2626'),
+                    ('Pipeline actif TND', "%.0f"|format(pipeline_value), '#7c3aed'),
+                    ('CA réalisé TND', "%.0f"|format(won_value), '#d97706'),
+                    ('Maintenance active TND', "%.0f"|format(maint_value), '#0891b2'),
+                ] %}
+                <div class="d-flex justify-content-between px-3 py-2 border-bottom" style="font-size:.8rem;">
+                    <span class="text-muted">{{ label }}</span>
+                    <span class="fw-bold" style="color:{{ color }};">{{ val }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold">🏆 Opportunités récentes</h6>
+                <a href="{{ url_for('pipeline.index') }}" class="btn btn-sm btn-light" style="font-size:.72rem;">Tout voir →</a>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_opps %}
+                <table class="table table-hover mb-0" style="font-size:.825rem;">
+                    <thead><tr><th>Client</th><th>Produit</th><th>Valeur</th><th>Stade</th></tr></thead>
+                    <tbody>
+                    {% for opp in recent_opps %}
+                    <tr style="cursor:pointer;" onclick="window.location='{{ url_for('pipeline.view_opportunity', id=opp.id) }}'">
+                        <td class="fw-bold">{{ opp.prospect.company_name if opp.prospect else 'N/A' }}</td>
+                        <td class="text-muted" style="font-size:.78rem;">{{ opp.product_service or '—' }}</td>
+                        <td style="color:#1a56db;font-weight:700;">{{ "%.0f"|format(opp.value) if opp.value else '—' }}</td>
+                        <td><span class="badge-status status-{{ opp.stage }}">{{ opp.stage }}</span></td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="text-center py-4 text-muted"><i class="fas fa-funnel-dollar fa-2x mb-2 d-block"></i>Aucune opportunité</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold">👥 Derniers prospects</h6>
+                <a href="{{ url_for('prospects.index') }}" class="btn btn-sm btn-light" style="font-size:.72rem;">Tout voir →</a>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_prospects %}
+                <ul class="list-group list-group-flush">
+                {% for p in recent_prospects %}
+                <li class="list-group-item d-flex justify-content-between align-items-center px-3 py-2"
+                    style="cursor:pointer;font-size:.825rem;" onclick="window.location='{{ url_for('prospects.view', id=p.id) }}'">
+                    <div>
+                        <div class="fw-bold">{{ p.company_name }}</div>
+                        <div class="text-muted" style="font-size:.75rem;">{{ p.sector or '' }}{% if p.city %} · {{ p.city }}{% endif %}</div>
+                    </div>
+                    <span class="badge-status status-{{ p.status }}" style="font-size:.65rem;">{{ p.status }}</span>
+                </li>
+                {% endfor %}
+                </ul>
+                {% else %}
+                <div class="text-center py-4 text-muted"><i class="fas fa-users fa-2x mb-2 d-block"></i>Aucun prospect</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.counter').forEach(el => {
+    const target = parseInt(el.dataset.target);
+    let cur = 0, step = Math.max(1, Math.ceil(target/30));
+    const t = setInterval(() => { cur = Math.min(cur+step,target); el.textContent=cur; if(cur>=target)clearInterval(t); }, 40);
+});
+
+new Chart(document.getElementById('funnelChart').getContext('2d'), {
+    type:'bar',
+    data:{
+        labels:{{ stage_labels|tojson }},
+        datasets:[{data:{{ stage_counts|tojson }},
+            backgroundColor:['#e0f2fe','#bfdbfe','#fef3c7','#d1fae5','#ede9fe','#bbf7d0'],
+            borderColor:['#0284c7','#1a56db','#f59e0b','#059669','#7c3aed','#16a34a'],
+            borderWidth:2, borderRadius:6}]
+    },
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{x:{beginAtZero:true,grid:{color:'#f1f5f9'},ticks:{stepSize:1,font:{size:9}}},
+                y:{grid:{display:false},ticks:{font:{size:9}}}}}
+});
+
+new Chart(document.getElementById('revenueChart').getContext('2d'), {
+    type:'line',
+    data:{labels:{{ monthly_labels|tojson }},
+        datasets:[{label:'CA Gagné (TND)',data:{{ monthly_won|tojson }},
+            borderColor:'#1a56db',backgroundColor:'rgba(26,86,219,0.07)',
+            fill:true,tension:0.4,pointBackgroundColor:'#1a56db',pointRadius:5,borderWidth:2.5}]},
+    options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+c.parsed.y.toLocaleString()+' TND'}}},
+        scales:{y:{beginAtZero:true,grid:{color:'#f1f5f9'},ticks:{font:{size:9}}},
+                x:{grid:{display:false},ticks:{font:{size:9}}}}}
+});
+
+new Chart(document.getElementById('donutChart').getContext('2d'), {
+    type:'doughnut',
+    data:{labels:{{ stage_dist_labels|tojson }},
+        datasets:[{data:{{ stage_dist_vals|tojson }},
+            backgroundColor:['#bfdbfe','#ede9fe','#d1fae5','#fee2e2','#ccfbf1'],
+            borderColor:['#1a56db','#7c3aed','#059669','#dc2626','#0891b2'],borderWidth:2}]},
+    options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:9},padding:6}}}}
+});
+</script>
+{% endblock %}

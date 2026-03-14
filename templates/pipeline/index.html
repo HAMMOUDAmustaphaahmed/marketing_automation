@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Pipeline CRM{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Accueil</a></li>
+<li class="breadcrumb-item active">Pipeline CRM</li>
+{% endblock %}
+
+{% block head %}
+<style>
+.kanban-col-replied    .kanban-col-header { background:#dbeafe; color:#1e40af; }
+.kanban-col-interested .kanban-col-header { background:#fef3c7; color:#92400e; }
+.kanban-col-quoted     .kanban-col-header { background:#ede9fe; color:#5b21b6; }
+.kanban-col-won        .kanban-col-header { background:#d1fae5; color:#065f46; }
+.kanban-col-lost       .kanban-col-header { background:#fee2e2; color:#991b1b; }
+.kanban-col-delivered  .kanban-col-header { background:#ccfbf1; color:#0f766e; }
+.kanban-col-maintenance .kanban-col-header { background:#fef9c3; color:#713f12; }
+.kanban-card-actions { display:none; gap:4px; margin-top:6px; }
+.kanban-card:hover .kanban-card-actions { display:flex; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h1>Pipeline CRM</h1>
+        <p>Suivi des opportunités commerciales par étape</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('pipeline.maintenance_list') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-tools me-1"></i>Maintenances
+        </a>
+        <a href="{{ url_for('pipeline.new_opportunity') }}" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus me-1"></i>Nouvelle opportunité
+        </a>
+    </div>
+</div>
+
+<!-- SEARCH -->
+<div class="mb-3">
+    <input type="text" id="kanbanSearch" class="form-control form-control-sm" style="max-width:300px;"
+           placeholder="🔍 Rechercher..." oninput="filterPipeline(this.value)">
+</div>
+
+<!-- KANBAN -->
+<div class="kanban-board">
+{% for stage, data in pipeline.items() %}
+<div class="kanban-col kanban-col-{{ stage }}">
+    <div class="kanban-col-header">
+        <span>{{ data.info.icon }} {{ data.info.label }}</span>
+        <span class="badge bg-white text-dark col-count" style="font-size:0.7rem;">{{ data.opportunities|length }}</span>
+    </div>
+    <div class="kanban-body">
+        {% for opp in data.opportunities %}
+        <div class="kanban-card">
+            <!-- Card header -->
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="fw-bold mb-1 kanban-card-title" style="font-size:0.825rem; cursor:pointer;"
+                     onclick="window.location='{{ url_for('pipeline.view_opportunity', id=opp.id) }}'">
+                    {{ opp.prospect.company_name if opp.prospect else 'N/A' }}
+                </div>
+                <!-- Edit/Delete dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-light p-0 px-1" style="font-size:0.7rem; line-height:1.4;"
+                            data-bs-toggle="dropdown"><i class="fas fa-ellipsis-v"></i></button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow" style="font-size:0.8rem; min-width:160px;">
+                        <li><a class="dropdown-item" href="{{ url_for('pipeline.view_opportunity', id=opp.id) }}">
+                            <i class="fas fa-eye me-2 text-primary"></i>Voir le détail</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('pipeline.edit_opportunity', id=opp.id) }}">
+                            <i class="fas fa-edit me-2 text-warning"></i>Modifier</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form action="{{ url_for('pipeline.delete_opportunity', id=opp.id) }}" method="POST"
+                                  onsubmit="return confirm('Supprimer cette opportunité ?')">
+                                <button type="submit" class="dropdown-item text-danger">
+                                    <i class="fas fa-trash me-2"></i>Supprimer
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div style="font-size:0.72rem; color:#64748b; margin-bottom:6px;">
+                {{ opp.title[:38] }}{% if opp.title|length > 38 %}...{% endif %}
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center">
+                {% if opp.value %}
+                <span style="font-size:0.75rem; font-weight:700; color:#1a56db;">
+                    {{ "%.0f"|format(opp.value) }} {{ opp.currency }}
+                </span>
+                {% else %}<span></span>{% endif %}
+                <span style="font-size:0.68rem; color:#94a3b8; background:#f1f5f9; border-radius:10px; padding:1px 6px;">
+                    {{ opp.probability }}%
+                </span>
+            </div>
+
+            {% if opp.next_followup %}
+            <div class="mt-1" style="font-size:0.68rem; color:#94a3b8;">
+                <i class="fas fa-clock me-1"></i>{{ opp.next_followup.strftime('%d/%m/%Y') }}
+            </div>
+            {% endif %}
+
+            <!-- Quick stage change -->
+            <div class="mt-2 pt-2 border-top">
+                <form action="{{ url_for('pipeline.quick_stage', id=opp.id) }}" method="POST"
+                      class="d-flex gap-1 align-items-center">
+                    <select name="stage" class="form-select form-select-sm" style="font-size:0.7rem; padding:2px 6px;">
+                        {% for s, lbl in [('replied','A répondu'),('interested','Intéressé'),('quoted','Devis'),('won','Gagné'),('lost','Perdu'),('delivered','Livré'),('maintenance','Maintenance')] %}
+                        <option value="{{ s }}" {% if s == opp.stage %}selected{% endif %}>{{ lbl }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-primary flex-shrink-0" style="font-size:0.7rem; padding:2px 8px;">
+                        ✓
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+
+        {% if not data.opportunities %}
+        <div class="text-center py-3" style="color:#94a3b8; font-size:0.75rem;">Aucune opportunité</div>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+</div>
+
+<!-- LEGEND -->
+<div class="card mt-3">
+    <div class="card-body py-2">
+        <div class="d-flex gap-3 flex-wrap align-items-center" style="font-size:0.75rem; color:#64748b;">
+            <span><strong>Flux :</strong></span>
+            <span>💬 A répondu</span><span>→</span>
+            <span>⭐ Intéressé</span><span>→</span>
+            <span>📄 Devis</span><span>→</span>
+            <span>🏆 Gagné (BC)</span><span>→</span>
+            <span>🚚 Livré</span><span>→</span>
+            <span>🔧 Maintenance</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/pipeline.js') }}"></script>
+{% endblock %}

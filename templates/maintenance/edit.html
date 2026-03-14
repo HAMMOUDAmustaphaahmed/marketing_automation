@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Modifier — {{ opp.title }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('maintenance.index') }}">Maintenance CRM</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('maintenance.view', id=opp.id) }}">{{ opp.title[:25] }}</a></li>
+<li class="breadcrumb-item active">Modifier</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header"><h1>Modifier l'opportunité</h1><p>{{ opp.title }}</p></div>
+
+<div class="row justify-content-center"><div class="col-lg-8">
+<div class="card"><div class="card-header"><h6 class="mb-0 fw-bold">✏️ Modification</h6></div>
+<div class="card-body">
+<form action="{{ url_for('maintenance.edit', id=opp.id) }}" method="POST">
+
+    <div class="mb-3">
+        <label class="form-label fw-bold">Client / Prospect</label>
+        <select name="prospect_id" class="form-select">
+            <option value="">— Aucun —</option>
+            {% for p in prospects %}
+            <option value="{{ p.id }}" {% if opp.prospect_id == p.id %}selected{% endif %}>{{ p.company_name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="mb-3">
+        <label class="form-label fw-bold">Titre *</label>
+        <input type="text" name="title" class="form-control" value="{{ opp.title }}" required>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <label class="form-label fw-bold">Type de maintenance</label>
+            <select name="maint_type" class="form-select">
+                <option value="preventive" {% if opp.maint_type=='preventive' %}selected{% endif %}>🔵 Préventive</option>
+                <option value="curative"  {% if opp.maint_type=='curative'  %}selected{% endif %}>🔴 Curative</option>
+                <option value="both"      {% if opp.maint_type=='both'      %}selected{% endif %}>🟢 Mixte</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label fw-bold">Type de parc</label>
+            <select name="park_type" class="form-select">
+                {% for val, label in park_types.items() %}
+                <option value="{{ val }}" {% if opp.park_type==val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    <div class="mb-3">
+        <label class="form-label fw-bold">Description du parc</label>
+        <textarea name="park_description" class="form-control" rows="2">{{ opp.park_description or '' }}</textarea>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <label class="form-label fw-bold">Nb équipements</label>
+            <input type="number" name="nb_equipments" class="form-control" value="{{ opp.nb_equipments or '' }}">
+        </div>
+        <div class="col-md-8">
+            <label class="form-label fw-bold">Adresse site</label>
+            <input type="text" name="site_address" class="form-control" value="{{ opp.site_address or '' }}">
+        </div>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <label class="form-label fw-bold">Valeur annuelle</label>
+            <div class="input-group">
+                <input type="number" name="value" class="form-control" step="0.01" value="{{ opp.value or '' }}">
+                <select name="currency" class="form-select" style="max-width:80px;">
+                    <option {% if opp.currency=='TND' %}selected{% endif %}>TND</option>
+                    <option {% if opp.currency=='EUR' %}selected{% endif %}>EUR</option>
+                </select>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label fw-bold">Durée (mois)</label>
+            <input type="number" name="contract_duration" class="form-control" value="{{ opp.contract_duration or 12 }}">
+        </div>
+        <div class="col-md-4">
+            <label class="form-label fw-bold">Visites/an</label>
+            <input type="number" name="visits_per_year" class="form-control" value="{{ opp.visits_per_year or 4 }}">
+        </div>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <label class="form-label fw-bold">Stade</label>
+            <select name="stage" class="form-select">
+                {% for s, info in stages.items() %}
+                <option value="{{ s }}" {% if opp.stage==s %}selected{% endif %}>{{ info.icon }} {{ info.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label fw-bold">Probabilité (%)</label>
+            <input type="number" name="probability" class="form-control" value="{{ opp.probability or 40 }}" min="0" max="100">
+        </div>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <label class="form-label fw-bold">Prochaine relance</label>
+            <input type="date" name="next_followup" class="form-control"
+                   value="{{ opp.next_followup.strftime('%Y-%m-%d') if opp.next_followup else '' }}">
+        </div>
+        <div class="col-md-6">
+            <label class="form-label fw-bold">Prochaine visite</label>
+            <input type="date" name="next_visit" class="form-control"
+                   value="{{ opp.next_visit.strftime('%Y-%m-%d') if opp.next_visit else '' }}">
+        </div>
+    </div>
+    <div class="mb-3">
+        <label class="form-label fw-bold">Raison si perdu</label>
+        <input type="text" name="lost_reason" class="form-control" value="{{ opp.lost_reason or '' }}" placeholder="Optionnel">
+    </div>
+    <div class="mb-4">
+        <label class="form-label fw-bold">Notes</label>
+        <textarea name="notes" class="form-control" rows="2">{{ opp.notes or '' }}</textarea>
+    </div>
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Enregistrer</button>
+        <a href="{{ url_for('maintenance.view', id=opp.id) }}" class="btn btn-light">Annuler</a>
+    </div>
+</form>
+</div></div>
+</div></div>
+{% endblock %}

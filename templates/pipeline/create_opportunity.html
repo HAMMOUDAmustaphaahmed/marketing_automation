@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Créer une Opportunité{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>Créer une Opportunité</h1>
+    <p>{{ prospect.company_name }} — {{ prospect.sector or '' }}</p>
+</div>
+<div class="card" style="max-width:600px;">
+    <div class="card-body">
+        <form action="{{ url_for('pipeline.create_opportunity', prospect_id=prospect.id) }}" method="POST">
+            <div class="mb-3">
+                <label class="form-label fw-600">Titre de l'opportunité</label>
+                <input type="text" name="title" class="form-control" placeholder="ex: Vente logiciel ERP" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-600">Produit / Service concerné</label>
+                <input type="text" name="product_service" class="form-control" placeholder="ex: Module CRM Pro">
+            </div>
+            <div class="row g-3 mb-3">
+                <div class="col-sm-6">
+                    <label class="form-label fw-600">Valeur estimée</label>
+                    <div class="input-group">
+                        <input type="number" name="value" class="form-control" placeholder="0" step="0.01" min="0">
+                        <select name="currency" class="form-select" style="max-width:80px;">
+                            <option value="TND">TND</option>
+                            <option value="EUR">EUR</option>
+                            <option value="USD">USD</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label fw-600">Probabilité (%)</label>
+                    <input type="number" name="probability" class="form-control" value="50" min="0" max="100">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-600">Notes</label>
+                <textarea name="notes" class="form-control" rows="3" placeholder="Contexte, besoins du client..."></textarea>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-star me-1"></i>Créer l'opportunité</button>
+                <a href="{{ url_for('prospects.view', id=prospect.id) }}" class="btn btn-outline-secondary">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
